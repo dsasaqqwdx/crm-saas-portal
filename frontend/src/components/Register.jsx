@@ -1,12 +1,21 @@
+<<<<<<< HEAD
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Mail, Lock, ShieldCheck } from "lucide-react";
+=======
+// 
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate, Link } from "react-router-dom";
+import { User, Mail, Lock } from "lucide-react";
+>>>>>>> 9c5a8010b4b016477788cc1b54819ccbe65ae531
 
 function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+<<<<<<< HEAD
   const navigate = useNavigate();
 
   const registerUser = async (e) => {
@@ -22,6 +31,26 @@ function Register() {
 
       alert("User Registered Successfully!");
       navigate("/login"); // Move user to login after success
+=======
+
+  const navigate = useNavigate();
+
+  const registerUser = async (e) => {
+    e.preventDefault();
+
+    try {
+      await axios.post("http://localhost:5000/api/auth/register", {
+        name,
+        email,
+        password,
+        role: "company_admin",
+        company_id: 1
+      });
+
+      alert("User Registered Successfully!");
+      navigate("/login");
+
+>>>>>>> 9c5a8010b4b016477788cc1b54819ccbe65ae531
     } catch (error) {
       console.error(error.response?.data || error.message);
       alert(
@@ -33,6 +62,7 @@ function Register() {
   };
 
   return (
+<<<<<<< HEAD
     <div className="min-h-screen flex flex-col lg:flex-row bg-[#f8fafc]">
       {/* Left Side: Register Form */}
       <div className="w-full lg:w-1/3 flex flex-col justify-center px-12 py-12 bg-white shadow-xl z-10">
@@ -146,6 +176,107 @@ function Register() {
           </div>
         </div>
       </div>
+=======
+    <div className="container-fluid vh-100 d-flex align-items-center bg-light">
+
+      <div className="row w-100">
+
+        {/* LEFT FORM */}
+        <div className="col-lg-4 col-md-6 mx-auto bg-white p-5 shadow rounded">
+
+          <div className="text-center mb-4">
+            <h3>Register</h3>
+            <p className="text-muted">Create your admin account</p>
+          </div>
+
+          <form onSubmit={registerUser}>
+
+            {/* NAME */}
+            <div className="mb-3">
+              <label className="form-label">Full Name</label>
+              <div className="input-group">
+                <span className="input-group-text">
+                  <User size={16}/>
+                </span>
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter name"
+                  onChange={(e)=>setName(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* EMAIL */}
+            <div className="mb-3">
+              <label className="form-label">Email</label>
+              <div className="input-group">
+                <span className="input-group-text">
+                  <Mail size={16}/>
+                </span>
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="Enter email"
+                  onChange={(e)=>setEmail(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* PASSWORD */}
+            <div className="mb-3">
+              <label className="form-label">Password</label>
+              <div className="input-group">
+                <span className="input-group-text">
+                  <Lock size={16}/>
+                </span>
+                <input
+                  type="password"
+                  className="form-control"
+                  placeholder="Enter password"
+                  onChange={(e)=>setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <button className="btn btn-success w-100 mt-3">
+              Register
+            </button>
+
+          </form>
+
+          <p className="text-center mt-3">
+            Already have an account?{" "}
+            <Link to="/login">Login here</Link>
+          </p>
+
+        </div>
+
+
+        {/* RIGHT SIDE */}
+        <div className="col-lg-6 d-none d-lg-flex align-items-center justify-content-center">
+
+          <div className="text-center">
+
+            <h1 className="display-5 fw-bold text-primary">
+              Shnoor SaaS HR System
+            </h1>
+
+            <p className="lead">
+              Manage employees, attendance, payroll and leave
+              with a modern HR platform.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+>>>>>>> 9c5a8010b4b016477788cc1b54819ccbe65ae531
     </div>
   );
 }
