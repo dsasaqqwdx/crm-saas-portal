@@ -1,15 +1,10 @@
--- =======================================
--- DATABASE: saas_hr_system
--- PURPOSE: Multi-tenant SaaS HR system
--- =======================================
 
--- 1️⃣ Create Database
+-- Database name
 CREATE DATABASE saas_hr_system;
 
--- Connect to the database
 \c saas_hr_system;
 
--- 2️⃣ Companies Table
+-- Companies Table
 CREATE TABLE companies (
     company_id SERIAL PRIMARY KEY,
     company_name VARCHAR(150) NOT NULL,
@@ -17,7 +12,7 @@ CREATE TABLE companies (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3️⃣ Users Table
+-- Users Table
 -- Roles: software_owner, super_admin, company_admin, employee
 CREATE TABLE users (
     user_id SERIAL PRIMARY KEY,
@@ -30,7 +25,7 @@ CREATE TABLE users (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 4️⃣ Departments Table
+-- Departments Table
 CREATE TABLE departments (
     department_id SERIAL PRIMARY KEY,
     department_name VARCHAR(100) NOT NULL,
@@ -38,7 +33,7 @@ CREATE TABLE departments (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 5️⃣ Designations Table
+-- Designations Table
 CREATE TABLE designations (
     designation_id SERIAL PRIMARY KEY,
     designation_name VARCHAR(100) NOT NULL,
@@ -46,7 +41,7 @@ CREATE TABLE designations (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 6️⃣ Employees Table
+--  Employees Table
 CREATE TABLE employees (
     employee_id SERIAL PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -61,7 +56,7 @@ CREATE TABLE employees (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 7️⃣ Attendance Table
+-- Attendance Table
 CREATE TABLE attendance (
     attendance_id SERIAL PRIMARY KEY,
     employee_id INT NOT NULL,
@@ -70,7 +65,7 @@ CREATE TABLE attendance (
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 );
 
--- 8️⃣ Leave Applications Table
+-- Leave Applications Table
 CREATE TABLE leave_applications (
     leave_id SERIAL PRIMARY KEY,
     employee_id INT NOT NULL,
@@ -82,7 +77,7 @@ CREATE TABLE leave_applications (
     FOREIGN KEY (employee_id) REFERENCES employees(employee_id)
 );
 
--- 9️⃣ Holidays Table
+-- Holidays Table
 CREATE TABLE holidays (
     holiday_id SERIAL PRIMARY KEY,
     company_id INT NOT NULL,
@@ -91,7 +86,7 @@ CREATE TABLE holidays (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 🔟 Payroll Policies Table
+-- Payroll Policies Table
 CREATE TABLE payroll_policies (
     policy_id SERIAL PRIMARY KEY,
     company_id INT NOT NULL,
@@ -101,7 +96,7 @@ CREATE TABLE payroll_policies (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 1️⃣1️⃣ Transactions Table
+--  Transactions Table
 CREATE TABLE transactions (
     transaction_id SERIAL PRIMARY KEY,
     company_id INT NOT NULL,
@@ -111,7 +106,7 @@ CREATE TABLE transactions (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 1️⃣2️⃣ Email Queries Table
+--  Email Queries Table
 CREATE TABLE email_queries (
     query_id SERIAL PRIMARY KEY,
     name VARCHAR(100),
@@ -120,7 +115,7 @@ CREATE TABLE email_queries (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 1️⃣3️⃣ Letterheads Table
+--  Letterheads Table
 CREATE TABLE letterheads (
     letterhead_id SERIAL PRIMARY KEY,
     company_id INT NOT NULL,
@@ -130,7 +125,7 @@ CREATE TABLE letterheads (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 1️⃣4️⃣ Super Admin Assignment Table
+--  Super Admin Assignment Table
 -- Which super admins are linked to which companies
 CREATE TABLE super_admin_assignments (
     id SERIAL PRIMARY KEY,
@@ -141,7 +136,7 @@ CREATE TABLE super_admin_assignments (
     FOREIGN KEY (company_id) REFERENCES companies(company_id)
 );
 
--- 1️⃣5️⃣ Optional Sample Data
+--  Sample Data
 -- Companies
 INSERT INTO companies (company_name, pricing_plan) VALUES ('ABC Tech','Premium');
 INSERT INTO companies (company_name, pricing_plan) VALUES ('XYZ Solutions','Basic');
@@ -149,10 +144,11 @@ INSERT INTO companies (company_name, pricing_plan) VALUES ('XYZ Solutions','Basi
 -- Users
 INSERT INTO users (name,email,password,role,company_id) VALUES
 ('Owner','owner@saas.com','123456','software_owner',NULL),
-('SuperAdmin1','super1@saas.com','123456','super_admin',NULL),
+('SuperAdmin1','super1@saas.com','123456','super_admin',NULL);
+INSERT INTO users (name,email,password,role,company_id) VALUES
 ('Admin1','admin1@abc.com','123456','company_admin',1),
-('Admin2','admin2@xyz.com','123456','company_admin',2);
-
+('Admin2','admin2@xyz.com','123456','company_admin',2),
+('Admin3','admin3@pqr.com','123456','company_admin',2);
 -- Departments
 INSERT INTO departments (department_name, company_id) VALUES ('HR', 1),('Engineering',1),('HR',2),('Sales',2);
 
@@ -162,7 +158,8 @@ INSERT INTO designations (designation_name, company_id) VALUES ('Manager',1),('E
 -- Employees
 INSERT INTO employees (name,email,phone,department_id,designation_id,company_id,joining_date) 
 VALUES 
-('Rahul','rahul@abc.com','9999999999',1,1,1,'2026-03-13'),
-('Priya','priya@abc.com','8888888888',2,2,1,'2026-03-14'),
-('John','john@xyz.com','7777777777',3,3,2,'2026-03-15'),
-('Alice','alice@xyz.com','6666666666',4,4,2,'2026-03-16');
+('Greeshmitha','greeshmitha@abc.com','9999999999',1,1,1,'2026-03-13'),
+('pallavi','pallavi@abc.com','8888888888',2,2,1,'2026-03-14'),
+('thanu','thanu@xyz.com','7777777777',3,3,2,'2026-03-15'),
+('Abi','abi@xyz.com','6666666666',4,4,2,'2026-03-16'),
+('aswin','aswin@pqr.com','9999999999',4,4,2,'2026-03-20');
