@@ -36,7 +36,7 @@ function MarkAttendance() {
 
   return (
     <div className="d-flex bg-light min-vh-100">
-      <Sidebar />
+      
 
       <div className="container mt-5">
         <div className="row justify-content-center">

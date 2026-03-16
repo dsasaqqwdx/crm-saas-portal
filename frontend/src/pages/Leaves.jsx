@@ -24,7 +24,7 @@ const Leaves = () => {
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Header */}
+        
 
         <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -41,7 +41,7 @@ const Leaves = () => {
         </div>
 
 
-        {/* Leave Balance Cards */}
+        
 
         <div className="row mb-4">
 
@@ -77,7 +77,7 @@ const Leaves = () => {
         </div>
 
 
-        {/* Leave History */}
+        
 
         <div className="card shadow-sm">
 

@@ -41,7 +41,7 @@ function Login() {
 
       <div className="row h-100">
 
-        {/* Left Login Form */}
+        
 
         <div className="col-lg-4 d-flex align-items-center justify-content-center bg-white shadow">
 
@@ -137,7 +137,7 @@ function Login() {
         </div>
 
 
-        {/* Right Banner */}
+        
 
         <div className="col-lg-8 d-none d-lg-flex align-items-center justify-content-center bg-dark text-white">
 

@@ -27,7 +27,7 @@ const Dashboard = () => {
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Header */}
+        
 
         <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -90,7 +90,7 @@ const Dashboard = () => {
         </div>
 
 
-        {/* Charts Section */}
+        
 
         <div className="row g-3">
 
@@ -158,7 +158,7 @@ const Dashboard = () => {
         </div>
 
 
-        {/* Recent Activity */}
+        
 
         <div className="card shadow-sm mt-4">
 

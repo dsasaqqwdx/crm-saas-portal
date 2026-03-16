@@ -27,7 +27,7 @@ function Holidays() {
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Header */}
+        
 
         <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -44,7 +44,7 @@ function Holidays() {
         </div>
 
 
-        {/* Featured Holiday */}
+        
 
         <div className="card bg-primary text-white mb-4 shadow">
 
@@ -83,7 +83,7 @@ function Holidays() {
         </div>
 
 
-        {/* Holiday Cards */}
+        
 
         <div className="row g-3">
 
@@ -136,7 +136,7 @@ function Holidays() {
         </div>
 
 
-        {/* Footer Note */}
+        
 
         <div className="alert alert-info mt-4 d-flex align-items-center">
 

@@ -29,7 +29,7 @@ const Home = () => {
 
       <Navbar />
 
-      {/* Hero Section */}
+      
 
       <section className="container py-5">
 
@@ -77,7 +77,7 @@ const Home = () => {
           </div>
 
 
-          {/* Features Grid */}
+          
 
           <div className="col-lg-6">
 
@@ -120,7 +120,7 @@ const Home = () => {
       </section>
 
 
-      {/* Stats Section */}
+      
 
       <section className="bg-black py-5">
 

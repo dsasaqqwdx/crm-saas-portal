@@ -18,7 +18,7 @@ function Payroll() {
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Header */}
+        
         <div className="d-flex justify-content-between align-items-center mb-4">
 
           <div>
@@ -33,7 +33,7 @@ function Payroll() {
 
         </div>
 
-        {/* Metrics */}
+        
         <div className="row mb-4">
 
           <div className="col-md-4">
@@ -68,7 +68,7 @@ function Payroll() {
 
         </div>
 
-        {/* Search */}
+        
         <div className="card p-3 mb-3">
 
           <div className="row align-items-center">
@@ -101,7 +101,7 @@ function Payroll() {
 
         </div>
 
-        {/* Payroll Table */}
+        
 
         <div className="card shadow-sm">
 

@@ -1,4 +1,4 @@
-// 
+ 
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
@@ -41,7 +41,7 @@ function Register() {
 
       <div className="row w-100">
 
-        {/* LEFT FORM */}
+        
         <div className="col-lg-4 col-md-6 mx-auto bg-white p-5 shadow rounded">
 
           <div className="text-center mb-4">
@@ -51,7 +51,7 @@ function Register() {
 
           <form onSubmit={registerUser}>
 
-            {/* NAME */}
+            
             <div className="mb-3">
               <label className="form-label">Full Name</label>
               <div className="input-group">
@@ -68,7 +68,7 @@ function Register() {
               </div>
             </div>
 
-            {/* EMAIL */}
+            
             <div className="mb-3">
               <label className="form-label">Email</label>
               <div className="input-group">
@@ -85,7 +85,7 @@ function Register() {
               </div>
             </div>
 
-            {/* PASSWORD */}
+            
             <div className="mb-3">
               <label className="form-label">Password</label>
               <div className="input-group">
@@ -116,7 +116,7 @@ function Register() {
         </div>
 
 
-        {/* RIGHT SIDE */}
+        
         <div className="col-lg-6 d-none d-lg-flex align-items-center justify-content-center">
 
           <div className="text-center">

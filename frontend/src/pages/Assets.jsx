@@ -27,7 +27,7 @@ function Assets() {
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Header */}
+        
 
         <div className="d-flex justify-content-between align-items-center mb-4">
 
@@ -130,7 +130,7 @@ function Assets() {
         </div>
 
 
-        {/* Search & Filter */}
+        
 
         <div className="card shadow-sm mb-3">
 
@@ -160,7 +160,7 @@ function Assets() {
         </div>
 
 
-        {/* Assets Table */}
+        
 
         <div className="card shadow-sm">
 
