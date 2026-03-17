@@ -17,14 +17,10 @@ import EmployeeDashboard from './roles/Employee/dashboard/EmployeeDashboardPage'
 import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage';
 import DepartmentsPage from "./roles/Admin/departments/DepartmentsPage";
 import TransactionsPage from "./roles/Superadmin/TransactionsPage";
-<<<<<<< HEAD
+
 import Designations from './roles/Designations';
-=======
+
 import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
-
->>>>>>> 1f829af73d0e23c8fb6fc10c3a81b740e688b7cb
-
-// --- PROTECTED ROUTE COMPONENT ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -106,7 +102,7 @@ function App() {
 } />
         {/* --- SHARED PRIVATE ROUTES --- */}
         <Route path="/holidays" element={
-          <ProtectedRoute allowedRoles={['employee', 'company_admin', 'super_admin']}>
+          <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <Holidays />
           </ProtectedRoute>
         } />
