@@ -32,10 +32,23 @@ const Sidebar = () => {
     { name: "Departments", path: "/departments", icon: <Building2 size={18} />, roles: ["company_admin"] },
 
     { name: "Transactions", path: "/transactions", icon: <CreditCard size={18} />, roles: ["super_admin", "software_owner"] },
+<<<<<<< HEAD
     { name: "Companies", path: "/superadmin/companiespage", icon: <Building2 size={18} />, roles: ["super_admin", "software_owner"] },
     { name: "Add Super Admin", path: "/add-superadmin", icon: <UserCog size={18} />, roles: ["super_admin", "software_owner"] },
 
     { name: "Designations", path: "/designations", icon: <UserPlus size={18} />, roles: ["company_admin"] }
+=======
+    {name :"CompaniesPage", path: "/superadmin-companiespage", icon: <Building2 size={18} />, roles: ["super_admin", "software_owner"] },
+    { name: "Designations", path: "/designations", icon: <UserPlus size={18} />, roles: ["company_admin"] },
+
+    { name: "Add Super Admin", path: "/add-superadmin", icon: <UserCog size={18} />, roles: ["super_admin", "software_owner"] },
+     { 
+   name: "Pricing Plans", 
+   path: "/superadmin/pricing", 
+   icon: <CreditCard size={18} />, 
+   roles: ["super_admin", "software_owner"] 
+ },
+>>>>>>> 1b99b676a3e6a2bfcf8a38dadea23f9a37b18a22
   ];
 
   const menuItems = allItems.filter(item => item.roles.includes(role));

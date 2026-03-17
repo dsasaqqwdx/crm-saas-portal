@@ -7,8 +7,11 @@ import Contact from './pages/Contact';
 
 import Login from './modules/auth/LoginPage';
 import Register from './modules/auth/RegisterPage';
+<<<<<<< HEAD
 
 // Dashboards
+=======
+>>>>>>> 1b99b676a3e6a2bfcf8a38dadea23f9a37b18a22
 import Dashboard from './roles/Admin/dashboard/AdminDashboardPage';
 import EmployeeDashboard from './roles/Employee/dashboard/EmployeeDashboardPage';
 import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage';
@@ -31,6 +34,7 @@ import TransactionsPage from "./roles/Superadmin/TransactionsPage";
 import CompaniesPage from './roles/Superadmin/CompaniesPage';
 import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
 
+import PricingPage from "./roles/Superadmin/saas/PricingPage";
 import Designations from './roles/Designations';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -117,6 +121,7 @@ function App() {
             <DepartmentsPage />
           </ProtectedRoute>
         } />
+<<<<<<< HEAD
 
         <Route path="/designations" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
@@ -125,6 +130,11 @@ function App() {
         } />
 
         {/* EMPLOYEE */}
+=======
+        
+<Route path="/superadmin/pricing" element={<PricingPage />} />
+        {/* --- EMPLOYEE ROUTES --- */}
+>>>>>>> 1b99b676a3e6a2bfcf8a38dadea23f9a37b18a22
         <Route path="/employee-dashboard" element={
           <ProtectedRoute allowedRoles={['employee']}>
             <EmployeeDashboard />
@@ -137,7 +147,24 @@ function App() {
           </ProtectedRoute>
         } />
 
+<<<<<<< HEAD
         {/* SHARED */}
+=======
+        <Route path="/transactions" element={
+  <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
+    <TransactionsPage />
+  </ProtectedRoute>
+} />
+
+
+<Route path="/add-superadmin" element={
+  <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
+    <AddSuperadminPage />
+  </ProtectedRoute>
+} />
+
+        {/* --- SHARED PRIVATE ROUTES --- */}
+>>>>>>> 1b99b676a3e6a2bfcf8a38dadea23f9a37b18a22
         <Route path="/holidays" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <Holidays />
