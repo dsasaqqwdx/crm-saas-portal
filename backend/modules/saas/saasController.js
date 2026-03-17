@@ -53,3 +53,17 @@ exports.getGlobalSummary = async (req, res) => {
         res.status(500).json({ error: "Server error while fetching global summary" });
     }
 };
+exports.getAllUsers = async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT u.user_id, u.name, u.email, u.role, u.company_id, u.created_at, c.company_name
+            FROM users u
+            LEFT JOIN companies c ON u.company_id = c.company_id
+            ORDER BY u.created_at DESC
+        `);
+        res.json({ success: true, data: result.rows });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: "Server error while fetching users" });
+    }
+};

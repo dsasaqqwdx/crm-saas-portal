@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { CreditCard } from "lucide-react"; // add to imports
 
-
+import { UserCog } from "lucide-react"; // add to imports
 const Sidebar = () => {
   const location = useLocation();
   const role = localStorage.getItem("role");
@@ -29,7 +29,12 @@ const Sidebar = () => {
     { name: "Payroll", path: "/payroll", icon: <Wallet size={18} />, roles: ["company_admin", "super_admin"] },
     { name: "Departments", path: "/departments", icon: <Building2 size={18} />, roles: ["company_admin"] },
     { name: "Transactions", path: "/transactions", icon: <CreditCard size={18} />, roles: ["super_admin", "software_owner"] },
+<<<<<<< HEAD
     { name: "Designations", path: "/designations", icon: <UserPlus size={18} />, roles: ["company_admin"] }
+=======
+    { name: "Add Super Admin", path: "/add-superadmin", icon: <UserCog size={18} />, roles: ["super_admin", "software_owner"] },
+    
+>>>>>>> 1f829af73d0e23c8fb6fc10c3a81b740e688b7cb
     
   ];
 
