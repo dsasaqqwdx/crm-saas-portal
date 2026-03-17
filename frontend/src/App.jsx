@@ -17,6 +17,7 @@ import EmployeeDashboard from './roles/Employee/dashboard/EmployeeDashboardPage'
 import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage';
 import DepartmentsPage from "./roles/Admin/departments/DepartmentsPage";
 import TransactionsPage from "./roles/Superadmin/TransactionsPage";
+import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
 
 
 // --- PROTECTED ROUTE COMPONENT ---
@@ -94,6 +95,11 @@ function App() {
   </ProtectedRoute>
 } />
 
+<Route path="/add-superadmin" element={
+  <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
+    <AddSuperadminPage />
+  </ProtectedRoute>
+} />
         {/* --- SHARED PRIVATE ROUTES --- */}
         <Route path="/holidays" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin', 'super_admin']}>
