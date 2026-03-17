@@ -3,6 +3,9 @@ import Sidebar from "../../../layouts/Sidebar";
 import { Users, Building2, CheckCircle, CalendarRange, Mail, ShieldCheck } from "lucide-react";
 import axios from "axios";
 
+// ✅ ADD THIS IMPORT
+import AdminAttendancePage from "../attendance/AdminAttendancePage";
+
 const Dashboard = () => {
   const [statsData, setStatsData] = useState({
     totalEmployees: 0,
@@ -49,13 +52,12 @@ const Dashboard = () => {
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Header - Button Removed */}
         <div className="mb-4">
           <h2 className="fw-bold">Admin Dashboard</h2>
           <p className="text-muted">Metric overview for Shnoor International</p>
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats */}
         <div className="row g-3 mb-4">
           {stats.map((stat, idx) => (
             <div key={idx} className="col-md-6 col-lg-3">
@@ -74,54 +76,41 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Employee List Table - Status Column Removed */}
+        {/* Employees */}
         <div className="card shadow-sm border-0">
           <div className="card-body">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h5 className="fw-bold mb-0">Employee Directory</h5>
-              <span className="badge bg-light text-dark border">Total: {employees.length}</span>
-            </div>
+            <h5 className="fw-bold mb-3">Employee Directory</h5>
 
-            <div className="table-responsive">
-              <table className="table table-hover align-middle">
-                <thead className="table-light">
-                  <tr>
-                    <th>Employee Name</th>
-                    <th>Email Address</th>
-                    <th>Role</th>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {employees.map((emp, i) => (
+                  <tr key={i}>
+                    <td>{emp.name}</td>
+                    <td>{emp.email}</td>
+                    <td>{emp.role}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {loading ? (
-                    <tr><td colSpan="3" className="text-center py-5">Loading employees...</td></tr>
-                  ) : employees.length > 0 ? (
-                    employees.map((emp, i) => (
-                      <tr key={i}>
-                        <td className="fw-semibold">{emp.name}</td>
-                        <td className="text-muted">
-                          <Mail size={14} className="me-2" />
-                          {emp.email}
-                        </td>
-                        <td>
-                          <span className="badge bg-info bg-opacity-10 text-info px-3">
-                            <ShieldCheck size={12} className="me-1" />
-                            {emp.role || 'Employee'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="3" className="text-center py-5 text-muted">
-                        No employees found in the database.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
+
+        {/* ✅ ADMIN ATTENDANCE ADDED */}
+        <div className="card shadow-sm border-0 mt-4">
+          <div className="card-body">
+            <h5 className="fw-bold mb-3">Employee Attendance</h5>
+            <AdminAttendancePage />
+          </div>
+        </div>
+
       </div>
     </div>
   );
