@@ -5,8 +5,6 @@ import Pricing from './pages/Pricing';   // Added
 import Contact from './pages/Contact';   // Added
 import Login from './modules/auth/LoginPage';
 import Register from './modules/auth/RegisterPage';
-
-// Dashboard Components
 import Dashboard from './roles/Admin/dashboard/AdminDashboardPage';
 import AddEmployee from './roles/Admin/employees/AddEmployeePage';
 import MarkAttendance from './roles/Employee/attendance/MarkAttendancePage';
@@ -18,13 +16,10 @@ import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage
 import DepartmentsPage from "./roles/Admin/departments/DepartmentsPage";
 import TransactionsPage from "./roles/Superadmin/TransactionsPage";
 
+import PricingPage from "./roles/Superadmin/saas/PricingPage";
 import Designations from './roles/Designations';
 
 import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
-
-
-
-// --- PROTECTED ROUTE COMPONENT ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -80,7 +75,7 @@ function App() {
           </ProtectedRoute>
         } />
         
-
+<Route path="/superadmin/pricing" element={<PricingPage />} />
         {/* --- EMPLOYEE ROUTES --- */}
         <Route path="/employee-dashboard" element={
           <ProtectedRoute allowedRoles={['employee']}>
@@ -99,14 +94,16 @@ function App() {
   </ProtectedRoute>
 } />
 
+
 <Route path="/add-superadmin" element={
   <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
     <AddSuperadminPage />
   </ProtectedRoute>
 } />
+
         {/* --- SHARED PRIVATE ROUTES --- */}
         <Route path="/holidays" element={
-          <ProtectedRoute allowedRoles={['employee', 'company_admin', 'super_admin']}>
+          <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <Holidays />
           </ProtectedRoute>
         } />

@@ -22,20 +22,23 @@ const Sidebar = () => {
     { name: "Admin Dashboard", path: "/dashboard", icon: <LayoutDashboard size={18} />, roles: ["company_admin"] },
     { name: "Super Control Panel", path: "/superadmin-dashboard", icon: <LayoutDashboard size={18} />, roles: ["super_admin", "software_owner"] },
     { name: "My Dashboard", path: "/employee-dashboard", icon: <LayoutDashboard size={18} />, roles: ["employee"] },
-    { name: "Add Employee", path: "/add-employee", icon: <UserPlus size={18} />, roles: ["company_admin", "super_admin"] },
-    { name: "Attendance", path: "/attendance", icon: <Clock size={18} />, roles: ["company_admin", "super_admin", "employee"] },
-    { name: "Holidays", path: "/holidays", icon: <Palmtree size={18} />, roles: ["company_admin", "super_admin", "employee"] },
-    { name: "Leaves", path: "/leaves", icon: <CalendarRange size={18} />, roles: ["company_admin", "super_admin", "employee"] },
-    { name: "Payroll", path: "/payroll", icon: <Wallet size={18} />, roles: ["company_admin", "super_admin"] },
+    { name: "Add Employee", path: "/add-employee", icon: <UserPlus size={18} />, roles: ["company_admin"] },
+    { name: "Attendance", path: "/attendance", icon: <Clock size={18} />, roles: ["company_admin", "employee"] },
+    { name: "Holidays", path: "/holidays", icon: <Palmtree size={18} />, roles: ["company_admin", "employee"] },
+    { name: "Leaves", path: "/leaves", icon: <CalendarRange size={18} />, roles: ["company_admin","employee"] },
+    { name: "Payroll", path: "/payroll", icon: <Wallet size={18} />, roles: ["company_admin",] },
     { name: "Departments", path: "/departments", icon: <Building2 size={18} />, roles: ["company_admin"] },
     { name: "Transactions", path: "/transactions", icon: <CreditCard size={18} />, roles: ["super_admin", "software_owner"] },
-
+    {name :"CompaniesPage", path: "/superadmin-companiespage", icon: <Building2 size={18} />, roles: ["super_admin", "software_owner"] },
     { name: "Designations", path: "/designations", icon: <UserPlus size={18} />, roles: ["company_admin"] },
 
     { name: "Add Super Admin", path: "/add-superadmin", icon: <UserCog size={18} />, roles: ["super_admin", "software_owner"] },
-    
- 
-    
+     { 
+   name: "Pricing Plans", 
+   path: "/superadmin/pricing", 
+   icon: <CreditCard size={18} />, 
+   roles: ["super_admin", "software_owner"] 
+ },
   ];
 
   const menuItems = allItems.filter(item => item.roles.includes(role));

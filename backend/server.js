@@ -28,8 +28,10 @@ const payrollRoutes = require('./modules/payroll/payrollRoutes');
 const saasRoutes = require('./modules/saas/saasRoutes');
 const departmentRoutes = require("./modules/departments/departmentRoutes");
 const designationRoutes = require("./routes/designations");
+const planRoutes = require("./modules/saas/planRoutes");
 app.use("/api/transactions", require("./modules/transactions/transactionRoutes"));
 app.use("/api/designations", designationRoutes);
+app.use("/api/plans", planRoutes);
 
 
 // 4. Register Routes
