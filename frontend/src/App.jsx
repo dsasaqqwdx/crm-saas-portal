@@ -5,8 +5,6 @@ import Pricing from './pages/Pricing';   // Added
 import Contact from './pages/Contact';   // Added
 import Login from './modules/auth/LoginPage';
 import Register from './modules/auth/RegisterPage';
-
-// Dashboard Components
 import Dashboard from './roles/Admin/dashboard/AdminDashboardPage';
 import AddEmployee from './roles/Admin/employees/AddEmployeePage';
 import MarkAttendance from './roles/Employee/attendance/MarkAttendancePage';
@@ -17,6 +15,7 @@ import EmployeeDashboard from './roles/Employee/dashboard/EmployeeDashboardPage'
 import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage';
 import DepartmentsPage from "./roles/Admin/departments/DepartmentsPage";
 import TransactionsPage from "./roles/Superadmin/TransactionsPage";
+import CompaniesPage from './roles/Superadmin/CompaniesPage';
 
 import Designations from './roles/Designations';
 
@@ -95,11 +94,17 @@ function App() {
   </ProtectedRoute>
 } />
 
+<Route path="/superadmin/companiespage" element={
+  <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
+    <CompaniesPage />
+  </ProtectedRoute>
+} />
 <Route path="/add-superadmin" element={
   <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
     <AddSuperadminPage />
   </ProtectedRoute>
 } />
+
         {/* --- SHARED PRIVATE ROUTES --- */}
         <Route path="/holidays" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>

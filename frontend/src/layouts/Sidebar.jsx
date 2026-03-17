@@ -29,7 +29,7 @@ const Sidebar = () => {
     { name: "Payroll", path: "/payroll", icon: <Wallet size={18} />, roles: ["company_admin",] },
     { name: "Departments", path: "/departments", icon: <Building2 size={18} />, roles: ["company_admin"] },
     { name: "Transactions", path: "/transactions", icon: <CreditCard size={18} />, roles: ["super_admin", "software_owner"] },
-
+    {name :"CompaniesPage", path: "/superadmin/companiespage", icon: <Building2 size={18} />, roles: ["super_admin", "software_owner"] },
     { name: "Designations", path: "/designations", icon: <UserPlus size={18} />, roles: ["company_admin"] },
 
     { name: "Add Super Admin", path: "/add-superadmin", icon: <UserCog size={18} />, roles: ["super_admin", "software_owner"] }

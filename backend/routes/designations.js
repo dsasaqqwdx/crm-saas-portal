@@ -1,8 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../config/db"); // ✅ fixed path
-
-// GET all designations
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query(
@@ -14,8 +12,6 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Failed to fetch designations" });
   }
 });
-
-// CREATE designation
 router.post("/", async (req, res) => {
   const { designation_name, company_id } = req.body;
 
@@ -34,8 +30,6 @@ router.post("/", async (req, res) => {
     res.status(500).json({ error: "Failed to add designation" });
   }
 });
-
-// DELETE designation
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
 
