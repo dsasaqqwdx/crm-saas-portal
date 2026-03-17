@@ -27,8 +27,9 @@ const leaveRoutes = require('./modules/leaves/leaveRoutes');
 const payrollRoutes = require('./modules/payroll/payrollRoutes');
 const saasRoutes = require('./modules/saas/saasRoutes');
 const departmentRoutes = require("./modules/departments/departmentRoutes");
+const designationRoutes = require("./routes/designations");
 app.use("/api/transactions", require("./modules/transactions/transactionRoutes"));
-
+app.use("/api/designations", designationRoutes);
 
 
 // 4. Register Routes

@@ -17,7 +17,7 @@ import EmployeeDashboard from './roles/Employee/dashboard/EmployeeDashboardPage'
 import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage';
 import DepartmentsPage from "./roles/Admin/departments/DepartmentsPage";
 import TransactionsPage from "./roles/Superadmin/TransactionsPage";
-
+import Designations from './roles/Designations';
 
 // --- PROTECTED ROUTE COMPONENT ---
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -105,7 +105,14 @@ function App() {
             <Leaves />
           </ProtectedRoute>
         } />
-
+<Route
+          path="/designations"
+          element={
+            <ProtectedRoute allowedRoles={['company_admin']}>
+              <Designations />
+            </ProtectedRoute>
+          }
+        />
         {/* Catch-all: Redirect to home if path not found */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
