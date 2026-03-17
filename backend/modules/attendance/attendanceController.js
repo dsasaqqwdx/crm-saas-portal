@@ -92,3 +92,25 @@ exports.markAttendance = async (req, res) => {
     });
   }
 };
+exports.getAllAttendance = async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT 
+        a.attendance_id,
+        a.attendance_date,
+        a.status,
+        a.check_in,
+        a.check_out,
+        e.name,
+        e.email
+      FROM public.attendance a
+      JOIN public.employees e ON a.employee_id = e.employee_id
+      ORDER BY a.attendance_date DESC
+    `);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Get Attendance Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};

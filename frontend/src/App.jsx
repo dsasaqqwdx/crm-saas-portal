@@ -7,11 +7,8 @@ import Contact from './pages/Contact';
 
 import Login from './modules/auth/LoginPage';
 import Register from './modules/auth/RegisterPage';
-<<<<<<< HEAD
 
 // Dashboards
-=======
->>>>>>> 1b99b676a3e6a2bfcf8a38dadea23f9a37b18a22
 import Dashboard from './roles/Admin/dashboard/AdminDashboardPage';
 import EmployeeDashboard from './roles/Employee/dashboard/EmployeeDashboardPage';
 import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage';
@@ -33,8 +30,8 @@ import Leaves from './modules/shared/leaves/LeavesPage';
 import TransactionsPage from "./roles/Superadmin/TransactionsPage";
 import CompaniesPage from './roles/Superadmin/CompaniesPage';
 import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
-
 import PricingPage from "./roles/Superadmin/saas/PricingPage";
+
 import Designations from './roles/Designations';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
@@ -79,6 +76,12 @@ function App() {
           </ProtectedRoute>
         } />
 
+        <Route path="/superadmin/pricing" element={
+          <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
+            <PricingPage />
+          </ProtectedRoute>
+        } />
+
         <Route path="/transactions" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <TransactionsPage />
@@ -98,6 +101,7 @@ function App() {
           </ProtectedRoute>
         } />
 
+        {/* ✅ ADMIN ATTENDANCE (ALL EMPLOYEES) */}
         <Route path="/admin-attendance" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <AdminAttendancePage />
@@ -121,7 +125,6 @@ function App() {
             <DepartmentsPage />
           </ProtectedRoute>
         } />
-<<<<<<< HEAD
 
         <Route path="/designations" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
@@ -130,41 +133,20 @@ function App() {
         } />
 
         {/* EMPLOYEE */}
-=======
-        
-<Route path="/superadmin/pricing" element={<PricingPage />} />
-        {/* --- EMPLOYEE ROUTES --- */}
->>>>>>> 1b99b676a3e6a2bfcf8a38dadea23f9a37b18a22
         <Route path="/employee-dashboard" element={
           <ProtectedRoute allowedRoles={['employee']}>
             <EmployeeDashboard />
           </ProtectedRoute>
         } />
 
+        {/* ✅ EMPLOYEE ONLY ATTENDANCE */}
         <Route path="/attendance" element={
-          <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
+          <ProtectedRoute allowedRoles={['employee']}>
             <MarkAttendance />
           </ProtectedRoute>
         } />
 
-<<<<<<< HEAD
         {/* SHARED */}
-=======
-        <Route path="/transactions" element={
-  <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
-    <TransactionsPage />
-  </ProtectedRoute>
-} />
-
-
-<Route path="/add-superadmin" element={
-  <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
-    <AddSuperadminPage />
-  </ProtectedRoute>
-} />
-
-        {/* --- SHARED PRIVATE ROUTES --- */}
->>>>>>> 1b99b676a3e6a2bfcf8a38dadea23f9a37b18a22
         <Route path="/holidays" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <Holidays />
@@ -177,6 +159,7 @@ function App() {
           </ProtectedRoute>
         } />
 
+        {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>

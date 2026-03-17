@@ -40,7 +40,6 @@ function MarkAttendance() {
 
   const handleAttendance = async () => {
     const token = localStorage.getItem("token");
-
     setLoading(true);
 
     try {
@@ -69,29 +68,67 @@ function MarkAttendance() {
       <Sidebar />
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
-        <h2>Mark Attendance</h2>
+        
+        <div className="row justify-content-center mt-5">
+          <div className="col-md-6">
 
-        <h3>{currentTime.toLocaleTimeString()}</h3>
+            {/* CARD */}
+            <div className="card shadow border-0 text-center p-4">
+              
+              <h2 className="fw-bold mb-3">Mark Attendance</h2>
 
-        <p>
-          {attendanceStatus === "NOT_MARKED" && "Not Marked"}
-          {attendanceStatus === "CHECKED_IN" && "Checked In"}
-          {attendanceStatus === "COMPLETED" && "Completed"}
-        </p>
+              {/* TIME */}
+              <h1 className="display-5 fw-bold text-primary">
+                {currentTime.toLocaleTimeString()}
+              </h1>
 
-        <button
-          onClick={handleAttendance}
-          disabled={attendanceStatus !== "NOT_MARKED"}
-        >
-          Check In
-        </button>
+              {/* STATUS */}
+              <p className="mt-3">
+                {attendanceStatus === "NOT_MARKED" && (
+                  <span className="badge bg-secondary fs-6">Not Marked</span>
+                )}
+                {attendanceStatus === "CHECKED_IN" && (
+                  <span className="badge bg-success fs-6">Checked In</span>
+                )}
+                {attendanceStatus === "COMPLETED" && (
+                  <span className="badge bg-dark fs-6">Completed</span>
+                )}
+              </p>
 
-        <button
-          onClick={handleAttendance}
-          disabled={attendanceStatus !== "CHECKED_IN"}
-        >
-          Check Out
-        </button>
+              {/* BUTTONS */}
+              <div className="d-flex gap-3 mt-4">
+
+                <button
+                  className="btn btn-success w-100 d-flex align-items-center justify-content-center"
+                  onClick={handleAttendance}
+                  disabled={loading || attendanceStatus !== "NOT_MARKED"}
+                >
+                  <CheckCircle size={18} className="me-2" />
+                  Check In
+                </button>
+
+                <button
+                  className="btn btn-danger w-100 d-flex align-items-center justify-content-center"
+                  onClick={handleAttendance}
+                  disabled={loading || attendanceStatus !== "CHECKED_IN"}
+                >
+                  <LogOut size={18} className="me-2" />
+                  Check Out
+                </button>
+
+              </div>
+
+              {/* LOCATION */}
+              <div className="mt-4 text-muted">
+                <MapPin size={14} className="me-1" />
+                Location Verified
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
       </div>
     </div>
   );

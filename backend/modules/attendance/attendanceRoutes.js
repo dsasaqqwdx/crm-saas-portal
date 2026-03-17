@@ -4,10 +4,10 @@ const { markAttendance } = require('./attendanceController');
 const protect = require('../../middleware/authMiddleware');
 const pool = require('../../config/db');
 
-// POST
+// POST → mark attendance
 router.post('/mark', protect, markAttendance);
 
-// TODAY
+// GET → today's attendance
 router.get('/today', protect, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -31,15 +31,21 @@ router.get('/today', protect, async (req, res) => {
     });
 
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
-// ALL
+// GET → all attendance (Admin)
 router.get('/all', protect, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT e.name, a.attendance_date AS date, a.status, a.check_in, a.check_out
+      SELECT 
+        e.name, 
+        a.attendance_date AS date, 
+        a.status, 
+        a.check_in, 
+        a.check_out
       FROM public.attendance a
       JOIN public.employees e ON a.employee_id = e.employee_id
       ORDER BY a.attendance_date DESC
@@ -47,6 +53,7 @@ router.get('/all', protect, async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
