@@ -137,7 +137,7 @@ function Holidays() {
         </div>
       </div>
 
-      {/* ADD HOLIDAY MODAL */}
+      
       {showModal && (
         <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-dialog-centered">

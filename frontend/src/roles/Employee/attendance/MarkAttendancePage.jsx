@@ -72,17 +72,15 @@ function MarkAttendance() {
         <div className="row justify-content-center mt-5">
           <div className="col-md-6">
 
-            {/* CARD */}
             <div className="card shadow border-0 text-center p-4">
               
               <h2 className="fw-bold mb-3">Mark Attendance</h2>
 
-              {/* TIME */}
+              
               <h1 className="display-5 fw-bold text-primary">
                 {currentTime.toLocaleTimeString()}
               </h1>
 
-              {/* STATUS */}
               <p className="mt-3">
                 {attendanceStatus === "NOT_MARKED" && (
                   <span className="badge bg-secondary fs-6">Not Marked</span>
@@ -95,7 +93,6 @@ function MarkAttendance() {
                 )}
               </p>
 
-              {/* BUTTONS */}
               <div className="d-flex gap-3 mt-4">
 
                 <button
@@ -118,7 +115,6 @@ function MarkAttendance() {
 
               </div>
 
-              {/* LOCATION */}
               <div className="mt-4 text-muted">
                 <MapPin size={14} className="me-1" />
                 Location Verified

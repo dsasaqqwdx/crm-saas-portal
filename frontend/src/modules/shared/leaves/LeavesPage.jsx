@@ -27,7 +27,7 @@ const Leaves = () => {
       const res = await axios.get("http://localhost:5001/api/leaves", {
         headers: { "x-auth-token": token }
       });
-      // The backend returns results in res.data.data
+      
       setLeaveRequests(res.data.data || []);
     } catch (err) {
       console.error("Error fetching leaves:", err);
@@ -48,7 +48,7 @@ const Leaves = () => {
         { status },
         { headers: { "x-auth-token": token } }
       );
-      await fetchLeaves(true); // Refresh data in background
+      await fetchLeaves(true); 
     } catch (err) {
       console.error("Error updating leave:", err);
       alert(err.response?.data?.error || "Failed to update leave");
@@ -175,7 +175,7 @@ const Leaves = () => {
         </div>
       </div>
 
-      {/* MODAL IMPLEMENTATION */}
+      
       {showModal && (
         <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
           <div className="modal-dialog modal-dialog-centered">

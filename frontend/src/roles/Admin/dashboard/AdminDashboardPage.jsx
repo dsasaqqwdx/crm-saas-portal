@@ -2,8 +2,8 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../../../layouts/Sidebar";
 import { Users, Building2, CheckCircle, CalendarRange, Mail, ShieldCheck } from "lucide-react";
 import axios from "axios";
+import ChatbotWidget from "../../../components/ChatbotWidget";
 
-// ✅ ADD THIS IMPORT
 import AdminAttendancePage from "../attendance/AdminAttendancePage";
 
 const Dashboard = () => {
@@ -57,7 +57,6 @@ const Dashboard = () => {
           <p className="text-muted">Metric overview for Shnoor International</p>
         </div>
 
-        {/* Stats */}
         <div className="row g-3 mb-4">
           {stats.map((stat, idx) => (
             <div key={idx} className="col-md-6 col-lg-3">
@@ -76,7 +75,6 @@ const Dashboard = () => {
           ))}
         </div>
 
-        {/* Employees */}
         <div className="card shadow-sm border-0">
           <div className="card-body">
             <h5 className="fw-bold mb-3">Employee Directory</h5>
@@ -103,7 +101,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* ✅ ADMIN ATTENDANCE ADDED */}
+    
         <div className="card shadow-sm border-0 mt-4">
           <div className="card-body">
             <h5 className="fw-bold mb-3">Employee Attendance</h5>
@@ -112,7 +110,9 @@ const Dashboard = () => {
         </div>
 
       </div>
+      <ChatbotWidget />
     </div>
+    
   );
 };
 

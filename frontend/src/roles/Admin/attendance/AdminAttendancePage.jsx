@@ -26,21 +26,19 @@ const AdminAttendancePage = () => {
   return (
     <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
       
-      {/* HEADER */}
+      
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="fw-bold">Employee Attendance</h2>
       </div>
 
-      {/* ERROR MESSAGE */}
       {error && (
         <div className="alert alert-danger">{error}</div>
       )}
 
-      {/* CARD */}
       <div className="card shadow-sm border-0">
         <div className="card-body">
 
-          {/* LOADING */}
+          
           {loading ? (
             <div className="text-center py-4">
               <div className="spinner-border text-primary"></div>
@@ -51,7 +49,6 @@ const AdminAttendancePage = () => {
             <div className="table-responsive">
               <table className="table table-hover align-middle">
                 
-                {/* TABLE HEADER */}
                 <thead className="table-dark">
                   <tr>
                     <th>Name</th>
@@ -62,7 +59,6 @@ const AdminAttendancePage = () => {
                   </tr>
                 </thead>
 
-                {/* TABLE BODY */}
                 <tbody>
                   {attendance.length > 0 ? (
                     attendance.map((item, index) => (

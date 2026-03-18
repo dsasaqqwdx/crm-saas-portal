@@ -59,7 +59,6 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Features Grid */}
           <div className="col-lg-6">
             <div className="row g-3">
               {features.map((feature, index) => (
@@ -87,7 +86,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Stats Section */}
       <section className="bg-black py-5 mt-5">
         <div className="container">
           <div className="row text-center g-4">

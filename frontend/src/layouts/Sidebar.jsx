@@ -8,12 +8,13 @@ import {
   CalendarRange,
   Wallet,
   LogOut,
-  Building2,   // ← add this
+  Building2,  
   Briefcase
 } from "lucide-react";
-import { CreditCard } from "lucide-react"; // add to imports
+import { CreditCard } from "lucide-react"; 
+import { HeadphonesIcon } from "lucide-react";
 
-import { UserCog } from "lucide-react"; // add to imports
+import { UserCog } from "lucide-react"; 
 const Sidebar = () => {
   const location = useLocation();
   const role = localStorage.getItem("role");
@@ -25,17 +26,16 @@ const Sidebar = () => {
 
   { name: "Add Employee", path: "/add-employee", icon: <UserPlus size={18} />, roles: ["company_admin"] },
 
-  // ✅ FIXED ATTENDANCE ROUTES
   { 
     name: "Employee Attendance", 
-    path: "/admin-attendance",   // ✅ Admin route
+    path: "/admin-attendance",  
     icon: <Clock size={18} />, 
     roles: ["company_admin"] 
   },
 
   { 
     name: "My Attendance", 
-    path: "/attendance",         // ✅ Employee route
+    path: "/attendance",         
     icon: <Clock size={18} />, 
     roles: ["employee"] 
   },
@@ -58,6 +58,7 @@ const Sidebar = () => {
     icon: <CreditCard size={18} />, 
     roles: ["super_admin", "software_owner"] 
   },
+  { name: "Support Tickets", path: "/support", icon: <HeadphonesIcon size={18} />, roles: ["company_admin"] },
 ];
 
   const menuItems = allItems.filter(item => item.roles.includes(role));
@@ -72,7 +73,7 @@ const Sidebar = () => {
       className="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white shadow"
       style={{ width: "250px", height: "100vh", position: "fixed", zIndex: 1000 }}
     >
-      {/* LOGO */}
+      
       <div className="d-flex align-items-center mb-4 border-bottom border-secondary pb-3">
         <div
           className="bg-primary text-white d-flex align-items-center justify-content-center rounded fw-bold"
@@ -85,7 +86,7 @@ const Sidebar = () => {
         </span>
       </div>
 
-      {/* Main Navigation */}
+      
       <ul className="nav nav-pills flex-column mb-auto">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;
@@ -104,14 +105,14 @@ const Sidebar = () => {
         })}
       </ul>
 
-      {/* User Info Section */}
+      
       <div className="mt-auto pt-3 px-2 border-top border-secondary">
         <div className="small text-muted mb-0" style={{ fontSize: '0.75rem' }}>Account</div>
         <div className="fw-semibold text-truncate mb-3" style={{ fontSize: '0.9rem' }}>
           {localStorage.getItem("name") || "Administrator"}
         </div>
 
-        {/* Logout Button */}
+        
         <button
           className="btn btn-outline-danger w-100 d-flex align-items-center justify-content-center py-2 border-0 bg-danger bg-opacity-10"
           onClick={handleLogout}

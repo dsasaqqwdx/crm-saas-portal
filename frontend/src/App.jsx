@@ -1,33 +1,25 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-
 import Home from './pages/Home';
 import Features from './pages/Features';
 import Pricing from './pages/Pricing';
 import Contact from './pages/Contact';
-
 import Login from './modules/auth/LoginPage';
 import Register from './modules/auth/RegisterPage';
-
-// Dashboards
 import Dashboard from './roles/Admin/dashboard/AdminDashboardPage';
 import EmployeeDashboard from './roles/Employee/dashboard/EmployeeDashboardPage';
 import SuperadminDashboard from './roles/Superadmin/saas/SuperadminDashboardPage';
-
-// Admin
 import AddEmployee from './roles/Admin/employees/AddEmployeePage';
 import Payroll from './roles/Admin/payroll/PayrollPage';
-import DepartmentsPage from "./roles/Admin/departments/DepartmentsPage";
+    import DepartmentsPage from "./roles/Admin/departments/DepartmentsPage";
 import AdminAttendancePage from "./roles/Admin/attendance/AdminAttendancePage";
 
-// Employee
+import AdminSupportPage from "./roles/Admin/support/AdminSupportPage";
 import MarkAttendance from './roles/Employee/attendance/MarkAttendancePage';
 
-// Shared
 import Holidays from './modules/shared/holidays/HolidaysPage';
 import Leaves from './modules/shared/leaves/LeavesPage';
 
-// Superadmin
-import TransactionsPage from "./roles/Superadmin/TransactionsPage";
+ import TransactionsPage from "./roles/Superadmin/TransactionsPage";
 import CompaniesPage from './roles/Superadmin/CompaniesPage';
 import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
 import PricingPage from "./roles/Superadmin/saas/PricingPage";
@@ -52,18 +44,14 @@ function App() {
   return (
     <Router>
       <Routes>
-
-        {/* PUBLIC */}
         <Route path="/" element={<Home />} />
         <Route path="/features" element={<Features />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/contact" element={<Contact />} />
-
-        {/* AUTH */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        {/* SUPER ADMIN */}
+        
         <Route path="/superadmin-dashboard" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <SuperadminDashboard />
@@ -94,14 +82,14 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* ADMIN */}
+        
         <Route path="/dashboard" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <Dashboard />
           </ProtectedRoute>
         } />
 
-        {/* ✅ ADMIN ATTENDANCE (ALL EMPLOYEES) */}
+       
         <Route path="/admin-attendance" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <AdminAttendancePage />
@@ -132,21 +120,24 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* EMPLOYEE */}
+     
         <Route path="/employee-dashboard" element={
           <ProtectedRoute allowedRoles={['employee']}>
             <EmployeeDashboard />
           </ProtectedRoute>
         } />
 
-        {/* ✅ EMPLOYEE ONLY ATTENDANCE */}
         <Route path="/attendance" element={
           <ProtectedRoute allowedRoles={['employee']}>
             <MarkAttendance />
           </ProtectedRoute>
         } />
-
-        {/* SHARED */}
+<Route path="/support" element={
+  <ProtectedRoute allowedRoles={['company_admin']}>
+    <AdminSupportPage />
+  </ProtectedRoute>
+} />
+        
         <Route path="/holidays" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <Holidays />
@@ -158,8 +149,6 @@ function App() {
             <Leaves />
           </ProtectedRoute>
         } />
-
-        {/* DEFAULT */}
         <Route path="*" element={<Navigate to="/" />} />
 
       </Routes>

@@ -42,7 +42,6 @@ function PricingPage() {
     <div className="container mt-4">
       <h2 className="mb-4 fw-bold text-primary">Pricing Plans</h2>
 
-      {/* Add Plan Card */}
       <div className="card shadow-sm mb-4">
         <div className="card-body">
           <h5 className="card-title mb-3">Add New Plan</h5>
@@ -112,7 +111,6 @@ function PricingPage() {
         </div>
       </div>
 
-      {/* Plans Table */}
       <div className="card shadow-sm">
         <div className="card-body">
           <h5 className="card-title mb-3">All Plans</h5>

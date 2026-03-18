@@ -111,14 +111,14 @@ export default function DepartmentsPage() {
 
   return (
     <div style={styles.page}>
-      {/* Toast */}
+      
       {toast && (
         <div style={{ ...styles.toast, background: toast.type === "error" ? "#ef4444" : "#10b981" }}>
           {toast.message}
         </div>
       )}
 
-      {/* Header */}
+      
       <div style={styles.header}>
         <div>
           <h1 style={styles.title}>Departments</h1>
@@ -129,7 +129,7 @@ export default function DepartmentsPage() {
         </button>
       </div>
 
-      {/* Search */}
+      
       <div style={styles.searchRow}>
         <input
           style={styles.searchInput}
@@ -140,7 +140,7 @@ export default function DepartmentsPage() {
         <span style={styles.countBadge}>{filtered.length} total</span>
       </div>
 
-      {/* Table */}
+      
       <div style={styles.card}>
         {loading ? (
           <div style={styles.center}>Loading...</div>
@@ -187,7 +187,7 @@ export default function DepartmentsPage() {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
+      
       {modalOpen && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
@@ -217,7 +217,7 @@ export default function DepartmentsPage() {
         </div>
       )}
 
-      {/* Delete Confirm Modal */}
+      
       {deleteConfirm && (
         <div style={styles.overlay}>
           <div style={styles.modal}>

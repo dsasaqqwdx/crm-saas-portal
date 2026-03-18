@@ -8,7 +8,7 @@ function Payroll() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
-  // Form State
+  
   const [selectedEmp, setSelectedEmp] = useState("");
   const [salary, setSalary] = useState("");
   const [deductions, setDeductions] = useState("0");

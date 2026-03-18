@@ -26,7 +26,7 @@ function AddEmployee() {
         }
       );
       alert("Employee added successfully!");
-      // Reset form to initial state
+      
       setFormData({
         name: "",
         email: "",
@@ -62,7 +62,6 @@ function AddEmployee() {
               <form onSubmit={handleSubmit}>
                 <div className="row">
 
-                  {/* Full Name */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-semibold small text-secondary">Full Name *</label>
                     <div className="input-group">
@@ -80,7 +79,6 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Email */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-semibold small text-secondary">Work Email *</label>
                     <div className="input-group">
@@ -98,7 +96,6 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Password */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-semibold small text-secondary">Initial Password *</label>
                     <div className="input-group">
@@ -117,7 +114,6 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Phone */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-semibold small text-secondary">Phone Number *</label>
                     <div className="input-group">
@@ -135,7 +131,6 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Joining Date */}
                   <div className="col-md-6 mb-3">
                     <label className="form-label fw-semibold small text-secondary">Official Joining Date *</label>
                     <div className="input-group">
@@ -152,7 +147,7 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Department */}
+                 
                   <div className="col-md-6 mb-4">
                     <label className="form-label fw-semibold small text-secondary">Assigned Department *</label>
                     <div className="input-group">

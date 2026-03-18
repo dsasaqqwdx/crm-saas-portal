@@ -60,26 +60,25 @@ const SuperadminDashboardPage = () => {
           {stats.map((stat, idx) => (
             <div key={idx} className="col-md-6 col-lg-3">
               <div className="card shadow-sm border-0 h-100">
-                <div className="card-body d-flex align-items-center">
+              <div className="card-body d-flex align-items-center">
                   <div className={`bg-${stat.color} text-white p-3 rounded me-3`}>
-                    {stat.icon}
+                  {stat.icon}
                   </div>
                   <div>
                     <p className="text-muted small mb-1">{stat.title}</p>
-                    <h5 className="fw-bold mb-0">{stat.val}</h5>
-                  </div>
+                <h5 className="fw-bold mb-0">{stat.val}</h5>
+                </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-
         <div className="card shadow-sm border-0">
           <div className="card-body">
-            <h5 className="fw-bold mb-3">Company Management</h5>
+          <h5 className="fw-bold mb-3">Company Management</h5>
             <div className="table-responsive">
-              <table className="table table-hover align-middle">
-                <thead className="table-light">
+            <table className="table table-hover align-middle">
+              <thead className="table-light">
                   <tr>
                     <th>Company Name</th>
                     <th>Subscribed On</th>
@@ -100,13 +99,13 @@ const SuperadminDashboardPage = () => {
                       <td><button className="btn btn-sm btn-outline-primary">Manage</button></td>
                     </tr>
                   ))}
-                </tbody>
-              </table>
+            </tbody>
+            </table>
+            </div>
             </div>
           </div>
-        </div>
 
-      </div>
+        </div>
     </div>
   );
 };

@@ -135,7 +135,6 @@ export default function TransactionsPage() {
       <Sidebar />
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Toast */}
         {toast && (
           <div style={{
             position: "fixed", top: 20, right: 20, zIndex: 9999,
@@ -147,7 +146,6 @@ export default function TransactionsPage() {
           </div>
         )}
 
-        {/* Header */}
         <div className="d-flex justify-content-between align-items-start mb-4">
           <div>
             <h2 className="fw-bold mb-1">Transactions</h2>
@@ -158,7 +156,7 @@ export default function TransactionsPage() {
           </button>
         </div>
 
-        {/* Stat Cards */}
+      
         {stats && (
           <div className="row g-3 mb-4">
             {statCards.map((card) => (
@@ -186,7 +184,6 @@ export default function TransactionsPage() {
           </div>
         )}
 
-        {/* Filters */}
         <div className="d-flex gap-2 mb-3 flex-wrap">
           <input
             className="form-control"
@@ -209,7 +206,6 @@ export default function TransactionsPage() {
           </span>
         </div>
 
-        {/* Table */}
         <div className="card border-0 shadow-sm">
           <div className="card-body p-0">
             {loading ? (
@@ -294,7 +290,7 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        {/* Add/Edit Modal */}
+        
         {modalOpen && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 28, width: 440, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
@@ -358,7 +354,6 @@ export default function TransactionsPage() {
           </div>
         )}
 
-        {/* Delete Confirm Modal */}
         {deleteConfirm && (
           <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
             <div style={{ background: "#fff", borderRadius: 12, padding: 28, width: 400, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>

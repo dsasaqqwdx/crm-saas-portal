@@ -3,6 +3,7 @@ import Sidebar from "../../../layouts/Sidebar";
 import { Clock, Calendar, FileText, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import ChatbotWidget from "../../../components/ChatbotWidget";
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -73,7 +74,6 @@ const EmployeeDashboard = () => {
 
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
         
-        {/* HEADER */}
         <div className="mb-4">
           <h2 className="fw-bold">
             Welcome back, {localStorage.getItem("name") || "Employee"}!
@@ -82,8 +82,6 @@ const EmployeeDashboard = () => {
             Here's what's happening with your profile today.
           </p>
         </div>
-
-        {/* STATS CARDS */}
         <div className="row g-3 mb-4">
           {stats.map((stat, idx) => (
             <div key={idx} className="col-md-6 col-lg-3">
@@ -107,6 +105,7 @@ const EmployeeDashboard = () => {
         </div>
 
       </div>
+      <ChatbotWidget />
     </div>
   );
 };

@@ -68,7 +68,6 @@ const Contact = () => {
                         </div>
                     </div>
 
-                    {/* Right Side: The Form */}
                     <div className="col-lg-7">
                         <div
                             className="card bg-secondary bg-opacity-10 border-0 p-4 p-md-5 shadow-lg"

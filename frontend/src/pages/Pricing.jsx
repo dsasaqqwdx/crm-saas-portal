@@ -31,15 +31,12 @@ const Pricing = () => {
         <div className="bg-dark text-white min-vh-100">
             <Navbar />
             <div className="container py-5 mt-5">
-                {/* Header Section */}
                 <div className="text-center mb-5">
                     <h1 className="display-4 fw-bold">
                         Simple, Scalable <span className="text-info">Pricing</span>
                     </h1>
                     <p className="text-secondary lead">Choose the plan that fits your company's growth.</p>
                 </div>
-
-                {/* Pricing Cards Grid */}
                 <div className="row g-4 justify-content-center align-items-stretch">
                     {plans.map((plan, i) => (
                         <div key={i} className="col-md-4">

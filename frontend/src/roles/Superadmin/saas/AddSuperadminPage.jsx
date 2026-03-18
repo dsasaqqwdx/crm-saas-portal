@@ -4,7 +4,6 @@ import Sidebar from "../../../layouts/Sidebar";
 import { UserPlus, Eye, EyeOff } from "lucide-react";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
-
 export default function AddSuperadminPage() {
   const [form, setForm] = useState({
     name: "",
@@ -51,8 +50,6 @@ export default function AddSuperadminPage() {
     }
   };
 
-  // To this:
-// eslint-disable-next-line react-hooks/exhaustive-deps
 useEffect(() => {
   fetchCompanies();
   fetchSuperadmins();
@@ -100,7 +97,7 @@ useEffect(() => {
       <Sidebar />
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
 
-        {/* Toast */}
+       
         {toast && (
           <div style={{
             position: "fixed", top: 20, right: 20, zIndex: 9999,
@@ -111,15 +108,12 @@ useEffect(() => {
             {toast.message}
           </div>
         )}
-
-        {/* Header */}
         <div className="mb-4">
           <h2 className="fw-bold mb-1">Add Super Admin</h2>
           <p className="text-muted mb-0">Create new super admin or software owner accounts</p>
         </div>
 
         <div className="row g-4">
-          {/* Form */}
           <div className="col-lg-5">
             <div className="card border-0 shadow-sm">
               <div className="card-body p-4">
@@ -135,7 +129,6 @@ useEffect(() => {
                 </div>
 
                 <form onSubmit={handleSubmit}>
-                  {/* Name */}
                   <div className="mb-3">
                     <label className="form-label fw-semibold small">Full Name *</label>
                     <input
@@ -147,8 +140,6 @@ useEffect(() => {
                       autoFocus
                     />
                   </div>
-
-                  {/* Email */}
                   <div className="mb-3">
                     <label className="form-label fw-semibold small">Email Address *</label>
                     <input
@@ -160,8 +151,6 @@ useEffect(() => {
                       placeholder="admin@shnoor.com"
                     />
                   </div>
-
-                  {/* Password */}
                   <div className="mb-3">
                     <label className="form-label fw-semibold small">Password *</label>
                     <div className="input-group">
@@ -183,7 +172,6 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  {/* Role */}
                   <div className="mb-3">
                     <label className="form-label fw-semibold small">Role *</label>
                     <select
@@ -202,7 +190,6 @@ useEffect(() => {
                     </div>
                   </div>
 
-                  {/* Company (optional) */}
                   <div className="mb-4">
                     <label className="form-label fw-semibold small">
                       Company <span className="text-muted fw-normal">(optional)</span>
@@ -238,7 +225,6 @@ useEffect(() => {
             </div>
           </div>
 
-          {/* Existing Superadmins List */}
           <div className="col-lg-7">
             <div className="card border-0 shadow-sm">
               <div className="card-body p-4">

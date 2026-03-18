@@ -12,16 +12,12 @@ const CompaniesPage = () => {
     systemAlerts: 0
   });
   const [loading, setLoading] = useState(true);
-
-  // NEW STATE (Form)
   const [formData, setFormData] = useState({
     company_name: "",
     pricing_plan: ""
   });
 
   const [showModal, setShowModal] = useState(false);
-
-  // FETCH DATA
   const fetchDashboardData = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -46,12 +42,11 @@ const CompaniesPage = () => {
     fetchDashboardData();
   }, []);
 
-  // HANDLE INPUT
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // CREATE COMPANY
+ 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -68,11 +63,11 @@ const CompaniesPage = () => {
       setShowModal(false);
       setFormData({ company_name: "", pricing_plan: "" });
 
-      fetchDashboardData(); // refresh table
+      fetchDashboardData();
 
     } catch (err) {
       console.error(err);
-      alert("Error adding company ❌");
+      alert("Error adding company ");
     }
   };
 
@@ -82,7 +77,6 @@ return (
 
     <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
       
-      {/* HEADER */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h2 className="fw-bold text-danger">Companies</h2>
@@ -97,7 +91,6 @@ return (
         </button>
       </div>
 
-      {/* TABLE */}
       <div className="card shadow-sm border-0">
         <div className="card-body">
           <h5 className="fw-bold mb-3">Companies List</h5>
@@ -126,7 +119,6 @@ return (
         </div>
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div className="modal d-block" tabIndex="-1">
           <div className="modal-dialog">

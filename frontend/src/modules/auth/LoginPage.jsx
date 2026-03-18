@@ -16,10 +16,9 @@ function Login() {
     setLoading(true);
 
     try {
-      // 1. Clean old session data to prevent role/token mixups
+      
       localStorage.clear();
 
-      // 2. Normalize email (lowercase and trim) for database matching
       const normalizedEmail = email.toLowerCase().trim();
 
       const res = await axios.post(
@@ -27,17 +26,14 @@ function Login() {
         { email: normalizedEmail, password }
       );
 
-      // Check if the request was successful and user data exists
       if (res.data.success && res.data.user) {
         const { token } = res.data;
         const { role, name } = res.data.user;
 
-        // 3. Save Identity Data to LocalStorage
         localStorage.setItem("token", token);
         localStorage.setItem("role", role);
         localStorage.setItem("name", name);
 
-        // 4. Role-Based Redirection Logic
         switch (role) {
           case "employee":
             navigate("/employee-dashboard");
@@ -47,7 +43,7 @@ function Login() {
             break;
           case "super_admin":
           case "software_owner":
-            // Both high-level roles go to the Super Admin Dashboard
+            
             navigate("/superadmin-dashboard");
             break;
           default:
@@ -58,7 +54,6 @@ function Login() {
     } catch (err) {
       console.error("Login Error:", err);
 
-      // Handle Network Errors vs. Validation Errors
       if (!err.response) {
         alert("Server is offline. Please check if your backend is running.");
       } else {
@@ -73,7 +68,7 @@ function Login() {
   return (
     <div className="container-fluid vh-100">
       <div className="row h-100">
-        {/* Form Section */}
+       
         <div className="col-lg-4 d-flex align-items-center justify-content-center bg-white shadow-sm">
           <div style={{ width: "100%", maxWidth: "380px" }} className="p-4">
             <div className="text-center mb-5">
@@ -146,7 +141,6 @@ function Login() {
           </div>
         </div>
 
-        {/* Brand/Hero Section */}
         <div className="col-lg-8 d-none d-lg-flex align-items-center justify-content-center bg-dark text-white position-relative overflow-hidden">
           <div
             className="position-absolute w-100 h-100"
