@@ -4,7 +4,7 @@ const pool = require("../../config/db");
 const verifyToken = require("../../middleware/authMiddleware");
 const checkRole = require("../../middleware/roleCheck");
 
-// GET all departments for the company
+
 router.get("/", verifyToken, async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -19,7 +19,7 @@ router.get("/", verifyToken, async (req, res) => {
   }
 });
 
-// GET single department
+
 router.get("/:id", verifyToken, async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -37,7 +37,7 @@ router.get("/:id", verifyToken, async (req, res) => {
   }
 });
 
-// POST create department (Admin only)
+
 router.post("/", verifyToken, checkRole(["company_admin"]), async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -65,7 +65,7 @@ router.post("/", verifyToken, checkRole(["company_admin"]), async (req, res) => 
   }
 });
 
-// PUT update department (Admin only)
+
 router.put("/:id", verifyToken, checkRole(["company_admin"]), async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -75,7 +75,7 @@ router.put("/:id", verifyToken, checkRole(["company_admin"]), async (req, res) =
     if (!department_name || department_name.trim() === "")
       return res.status(400).json({ success: false, message: "Department name is required" });
 
-    // Check for duplicate (exclude current)
+    
     const exists = await pool.query(
       "SELECT 1 FROM departments WHERE LOWER(department_name) = LOWER($1) AND company_id = $2 AND department_id != $3",
       [department_name.trim(), company_id, id]

@@ -1,11 +1,8 @@
 const pool = require('../../config/db');
 
-// @desc    Create a new Company/Tenant
-// @access  Superadmin, Software Owner
 exports.createCompany = async (req, res) => {
     const { company_name, pricing_plan } = req.body;
     
-    // Safety Check: Only software_owner or super_admin should create companies
     if (req.user.role !== 'software_owner' && req.user.role !== 'super_admin') {
         return res.status(403).json({ msg: 'Not authorized to create companies' });
     }
@@ -21,8 +18,7 @@ exports.createCompany = async (req, res) => {
         res.status(500).json({ error: "Server error while creating company" });
     }
 };
-// @desc    Get all companies
-// @access  Superadmin, Software Owner
+
 exports.getCompanies = async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM companies ORDER BY created_at DESC');
@@ -32,7 +28,7 @@ exports.getCompanies = async (req, res) => {
         res.status(500).json({ error: "Server error while fetching companies" });
     }
 };
-// @desc    Get Global Summary Stats for Superadmin
+
 exports.getGlobalSummary = async (req, res) => {
     try {
         const companyCount = await pool.query('SELECT COUNT(*) FROM companies');

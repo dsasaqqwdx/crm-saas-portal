@@ -4,10 +4,9 @@ const { markAttendance } = require('./attendanceController');
 const protect = require('../../middleware/authMiddleware');
 const pool = require('../../config/db');
 
-// POST → mark attendance
+
 router.post('/mark', protect, markAttendance);
 
-// GET → today's attendance
 router.get('/today', protect, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -36,7 +35,7 @@ router.get('/today', protect, async (req, res) => {
   }
 });
 
-// GET → all attendance (Admin)
+
 router.get('/all', protect, async (req, res) => {
   try {
     const result = await pool.query(`

@@ -6,7 +6,7 @@ exports.getSummary = async (req, res) => {
         const companyId = req.user.company_id;
         const role = req.user.role;
 
-        // Normalize roles to handle super_admin and software_owner same as company_admin for stats
+         
         if (['company_admin', 'super_admin', 'software_owner'].includes(role)) {
             const query = `
                 SELECT 
@@ -22,12 +22,12 @@ exports.getSummary = async (req, res) => {
             `;
             const result = await pool.query(query, [companyId]);
 
-            // Fallback to zeros if result is undefined
+            
             const data = result.rows[0] || { totalEmployees: 0, presentToday: 0, pendingLeaves: 0, totalCompanies: 0 };
             return res.json({ success: true, data });
 
         } else {
-            // Employee sees personal stats
+            
             const query = `
                 SELECT 
                     (SELECT status FROM public.attendance 

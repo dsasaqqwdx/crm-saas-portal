@@ -20,7 +20,7 @@ exports.register = async (req, res) => {
                 "INSERT INTO employees (name, email, company_id) VALUES ($1, $2, $3) RETURNING employee_id",
                 [name, emailLower, company_id]
             );
-            // Default Leave Seeding
+           
             await pool.query(
                 "INSERT INTO leave_balances (employee_id, leave_type, total_leaves, remaining_leaves) VALUES ($1, 'Annual', 20, 20)",
                 [emp.rows[0].employee_id]

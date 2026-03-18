@@ -1,6 +1,5 @@
 const pool = require('../../config/db');
 
-// @route   POST /api/leaves/apply
 exports.applyLeave = async (req, res) => {
     const { leave_type, start_date, end_date, reason } = req.body;
 
@@ -34,7 +33,6 @@ exports.getLeaves = async (req, res) => {
         `;
         let params = [company_id];
 
-        // Ensure Employee only sees their own leaves
         if (role === 'employee') {
             query += ` AND LOWER(e.email) = LOWER($2)`;
             params.push(req.user.email);
@@ -50,7 +48,6 @@ exports.getLeaves = async (req, res) => {
     }
 };
 
-// @desc    Approve or reject a leave request
 exports.approveLeave = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
@@ -76,7 +73,7 @@ exports.approveLeave = async (req, res) => {
         const { employee_id, leave_type, days_requested } = leaveData.rows[0];
 
         if (status === 'Approved') {
-            // 2. Check Balance from leave_balances table
+            
             const balanceCheck = await pool.query(
                 'SELECT remaining_leaves FROM leave_balances WHERE employee_id = $1 AND leave_type = $2',
                 [employee_id, leave_type]
@@ -90,14 +87,12 @@ exports.approveLeave = async (req, res) => {
                 return res.status(400).json({ error: `Insufficient balance. Required: ${days_requested}, Available: ${balanceCheck.rows[0].remaining_leaves}` });
             }
 
-            // 3. Update Balance dynamically based on date range
             await pool.query(
                 'UPDATE leave_balances SET used_leaves = used_leaves + $1, remaining_leaves = remaining_leaves - $1 WHERE employee_id = $2 AND leave_type = $3',
                 [days_requested, employee_id, leave_type]
             );
         }
 
-        // 4. Update the application status
         const result = await pool.query(
             `UPDATE leave_applications SET status = $1 WHERE leave_id = $2 RETURNING *`,
             [status, id]

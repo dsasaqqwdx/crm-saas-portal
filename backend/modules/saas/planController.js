@@ -1,6 +1,5 @@
 const db = require("../../config/db");
 
-// Get all plans
 exports.getPlans = async (req, res) => {
   try {
     const result = await db.query("SELECT * FROM plans ORDER BY plan_id");
@@ -10,7 +9,6 @@ exports.getPlans = async (req, res) => {
   }
 };
 
-// Add plan
 exports.createPlan = async (req, res) => {
   const { plan_name, price, billing_cycle, max_employees, features } = req.body;
 
@@ -27,7 +25,6 @@ exports.createPlan = async (req, res) => {
   }
 };
 
-// Delete plan
 exports.deletePlan = async (req, res) => {
   try {
     await db.query("DELETE FROM plans WHERE plan_id = $1", [req.params.id]);

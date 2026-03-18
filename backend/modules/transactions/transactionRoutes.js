@@ -6,7 +6,7 @@ const roleCheck = require("../../middleware/roleCheck");
 
 const isSuperAdmin = roleCheck(["super_admin", "software_owner"]);
 
-// GET all transactions (with company name)
+
 router.get("/", auth, isSuperAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
@@ -22,7 +22,7 @@ router.get("/", auth, isSuperAdmin, async (req, res) => {
   }
 });
 
-// GET transactions by company
+
 router.get("/company/:company_id", auth, isSuperAdmin, async (req, res) => {
   try {
     const { company_id } = req.params;
@@ -40,7 +40,7 @@ router.get("/company/:company_id", auth, isSuperAdmin, async (req, res) => {
   }
 });
 
-// GET summary stats
+
 router.get("/stats", auth, isSuperAdmin, async (req, res) => {
   try {
     const total = await pool.query("SELECT COUNT(*), COALESCE(SUM(amount), 0) as total_amount FROM transactions");
@@ -65,8 +65,6 @@ router.get("/stats", auth, isSuperAdmin, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-// POST create transaction
 router.post("/", auth, isSuperAdmin, async (req, res) => {
   try {
     const { company_id, amount, payment_date, status } = req.body;
@@ -85,7 +83,6 @@ router.post("/", auth, isSuperAdmin, async (req, res) => {
   }
 });
 
-// PUT update transaction status
 router.put("/:id", auth, isSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -105,7 +102,6 @@ router.put("/:id", auth, isSuperAdmin, async (req, res) => {
   }
 });
 
-// DELETE transaction
 router.delete("/:id", auth, isSuperAdmin, async (req, res) => {
   try {
     const { id } = req.params;

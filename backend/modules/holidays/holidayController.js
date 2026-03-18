@@ -1,6 +1,5 @@
 const pool = require('../../config/db');
 
-// @desc    Get all holidays for a company
 exports.getHolidays = async (req, res) => {
     const company_id = req.user.company_id;
 
@@ -16,7 +15,7 @@ exports.getHolidays = async (req, res) => {
     }
 };
 
-// @desc    Add a new holiday
+
 exports.addHoliday = async (req, res) => {
     const { holiday_date, description } = req.body;
     const company_id = req.user.company_id;

@@ -1,7 +1,5 @@
 const pool = require('../../config/db');
 
-// Get all employees and their latest payroll status
-
 exports.getPayrollList = async (req, res) => {
     try {
         const companyId = req.user.company_id;
@@ -39,7 +37,6 @@ exports.getPayrollList = async (req, res) => {
     }
 };
 
-// Process the actual payment record
 exports.processPayment = async (req, res) => {
     const { employee_id, salary, deductions, bonus } = req.body;
     try {
@@ -63,10 +60,9 @@ exports.processPayment = async (req, res) => {
 };
 
 
-// @desc    Get specific payslip data for download
 exports.downloadPayslip = async (req, res) => {
     try {
-        const { id } = req.params; // payroll_id
+        const { id } = req.params; 
         const companyId = req.user.company_id;
 
         const query = `
