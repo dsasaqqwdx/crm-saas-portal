@@ -3,9 +3,7 @@ import Sidebar from "../../../layouts/Sidebar";
 import { Users, Building2, CheckCircle, CalendarRange, Mail, ShieldCheck } from "lucide-react";
 import axios from "axios";
 import ChatbotWidget from "../../../components/ChatbotWidget";
-
 import AdminAttendancePage from "../attendance/AdminAttendancePage";
-
 const Dashboard = () => {
   const [statsData, setStatsData] = useState({
     totalEmployees: 0,
@@ -13,10 +11,8 @@ const Dashboard = () => {
     pendingLeaves: 0,
     totalCompanies: 0
   });
-
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -27,7 +23,6 @@ const Dashboard = () => {
           axios.get("http://localhost:5001/api/dashboard/summary", { headers }),
           axios.get("http://localhost:5001/api/employees", { headers })
         ]);
-
         setStatsData(sumRes.data.data);
         setEmployees(empRes.data.data || []);
       } catch (err) {
@@ -38,25 +33,20 @@ const Dashboard = () => {
     };
     fetchData();
   }, []);
-
   const stats = [
     { title: "Total Employees", count: statsData.totalEmployees, icon: <Users />, color: "primary" },
     { title: "Present Today", count: statsData.presentToday, icon: <CheckCircle />, color: "success" },
     { title: "Pending Leaves", count: statsData.pendingLeaves, icon: <CalendarRange />, color: "warning" },
     { title: "Companies", count: statsData.totalCompanies, icon: <Building2 />, color: "info" },
   ];
-
   return (
     <div className="d-flex bg-light min-vh-100">
       <Sidebar />
-
       <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
-
         <div className="mb-4">
           <h2 className="fw-bold">Admin Dashboard</h2>
           <p className="text-muted">Metric overview for Shnoor International</p>
         </div>
-
         <div className="row g-3 mb-4">
           {stats.map((stat, idx) => (
             <div key={idx} className="col-md-6 col-lg-3">
@@ -84,7 +74,7 @@ const Dashboard = () => {
                 <tr>
                   <th>Name</th>
                   <th>Email</th>
-                  <th>Role</th>
+                 
                 </tr>
               </thead>
 
@@ -93,24 +83,15 @@ const Dashboard = () => {
                   <tr key={i}>
                     <td>{emp.name}</td>
                     <td>{emp.email}</td>
-                    <td>{emp.role}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        </div> <div className="card shadow-sm border-0 mt-4">
         </div>
 
-    
-        <div className="card shadow-sm border-0 mt-4">
-          <div className="card-body">
-            <h5 className="fw-bold mb-3">Employee Attendance</h5>
-            <AdminAttendancePage />
-          </div>
-        </div>
-
-      </div>
-      <ChatbotWidget />
+ </div>
     </div>
     
   );

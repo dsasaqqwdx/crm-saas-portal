@@ -15,7 +15,7 @@ export default function AdminSupportPage() {
   const [selectedTicket, setSelectedTicket] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStatus, setFilterStatus] = useState(null);
   const [toast, setToast] = useState(null);
   const [openCount, setOpenCount] = useState(0);
   const conversationEndRef = useRef(null); const token = localStorage.getItem("token");
@@ -101,9 +101,7 @@ fetchTickets();
     } return Array.isArray(data) ? data : [];
   };
 
-  const filtered = tickets.filter(t =>
-    filterStatus === "all" ? true : t.status === filterStatus
-  );
+const filtered = tickets;
   const formatTime = (ts) => {
     if (!ts) return "";
 return new Date(ts).toLocaleString("en-IN", {
@@ -140,7 +138,7 @@ fontWeight: 500, boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
   <p className="text-muted mb-0">Reply to employee support requests</p>
     </div>
         </div>  
-        <div className="row g-3 mb-4">
+        {/* <div className="row g-3 mb-4">
           {[
      { label: "Open", status: "open", color: "#a16207", bg: "#fef9c3" },
  { label: "In Progress", status: "inprogress", color: "#4f46e5", bg: "#e0e7ff" },
@@ -160,17 +158,17 @@ fontWeight: 500, boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
     </div>
  </div>
     ))}
-        </div>
+        </div> */}
         <div className="row g-3">     
    <div className="col-lg-4">
-  <div className="d-flex gap-1 mb-2 flex-wrap">
+  {/* <div className="d-flex gap-1 mb-2 flex-wrap">
   {["all", "open", "inprogress", "resolved", "closed"].map(s => (
   <button key={s} onClick={() => setFilterStatus(s)}
  className={`btn btn-sm fw-semibold ${filterStatus === s ? "btn-primary" : "btn-outline-secondary"}`}>
       {s === "inprogress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
      ))}
-            </div>
+            </div> */}
      <div className="card border-0 shadow-sm">
      <div className="card-body p-0">     {loading ? (
          <div className="text-center text-muted p-4">Loading...</div>
@@ -192,9 +190,9 @@ fontWeight: 500, boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
       <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ef4444", display: "inline-block", marginLeft: 6 }} />
                           )}
                         </span>
-   <span style={{ background: sc.bg, color: sc.text, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
+   {/* <span style={{ background: sc.bg, color: sc.text, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
     {ticket.status === "inprogress" ? "In Progress" : ticket.status}
-         </span>
+         </span> */}
                  </div>
      <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }} className="text-truncate">
               {ticket.subject}
@@ -223,7 +221,7 @@ fontWeight: 500, boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
 
     <div className="d-flex justify-content-between align-items-start mb-3">
          <div>
-         <h6 className="fw-bold mb-1">#{selectedTicket.ticket_id} — {selectedTicket.subject}</h6>
+         <h6 className="fw-bold mb-1">{selectedTicket.subject}</h6>
       <div style={{ fontSize: 13, color: "#64748b" }}>
        From: <strong>{selectedTicket.user_name}</strong> ({selectedTicket.user_email})
        </div>
@@ -231,7 +229,7 @@ fontWeight: 500, boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
       <button className="btn btn-sm" style={{ background: "#fff1f2", color: "#ef4444", fontWeight: 500 }}
         onClick={() => handleDelete(selectedTicket.ticket_id)}>Delete</button>
         </div>
-                  <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
+                  {/* <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
                     <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Status:</span>
        {["open", "inprogress", "resolved", "closed"].map(s => {
              const sc = STATUS_COLORS[s];
@@ -249,7 +247,7 @@ fontWeight: 500, boxShadow: "0 4px 12px rgba(0,0,0,0.15)"
                         </button>
                       );
                     })}
-                  </div>
+                  </div> */}
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8 }}>
        Full Conversation
                   </div>

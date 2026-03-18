@@ -187,7 +187,7 @@ setLoading(true);
    headers: { "Content-Type": "application/json" },
    body: JSON.stringify({
           model: "claude-sonnet-4-20250514",
-          max_tokens: 500,   system: `You are an HR assistant for Shnoor International. Answer only HR-related questions about company policies, leave, attendance, payroll, and technical support. If asked something unrelated to HR, say you cannot help with that topic and suggest contacting support. Be concise and friendly. If unsure about a specific company detail, say so honestly.`,
+          max_tokens: 500,   system: `You are an chatbot for Shnoor International. Answer only HR-related questions about company policies, leave, attendance, payroll, and technical support. If asked something unrelated to HR, say you cannot help with that topic and suggest contacting support. Be concise and friendly. If unsure about a specific company detail, say so honestly.`,
    messages: history
             .filter(m => m.role === "user" || m.role === "assistant")
             .map(m => ({ role: m.role, content: m.content })),
@@ -221,7 +221,7 @@ messages: chatHistory,
 
       const newTicketId = res.data.data?.ticket_id;
       setTicketId(newTicketId); setSeenReplies([]);
-      addMessage("assistant", `Ticket **#${newTicketId}** created! Your request has been sent to the admin team. I'll notify you here as soon as they reply. You can also click **"Check Reply"** anytime. `);
+      addMessage("assistant", `Your request has been sent to the admin team. I'll notify you here as soon as they reply. You can also click **"Check Reply"** anytime. `);
     } catch (err) {  addMessage("assistant", "There was an issue creating your support ticket. Please try again.");
  } finally {
       setEscalating(false);
