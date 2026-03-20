@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 
@@ -5,27 +6,30 @@ const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const NotificationContext = createContext(null);
 
 const TYPE_ICONS = {
-  new_ticket:      "🎫",
-  admin_reply:     "💬",
-  file_uploaded:   "📎",
-  reaction_added:  "😊",
-  message_deleted: "🗑️",
+  new_ticket:       "🎫",
+  admin_reply:      "💬",
+  employee_message: "✉️",
+  file_uploaded:    "📎",
+  reaction_added:   "😊",
+  message_deleted:  "🗑️",
 };
 
 const TYPE_COLORS = {
-  new_ticket:      "#4f46e5",
-  admin_reply:     "#16a34a",
-  file_uploaded:   "#d97706",
-  reaction_added:  "#be185d",
-  message_deleted: "#dc2626",
+  new_ticket:       "#4f46e5",
+  admin_reply:      "#16a34a",
+  employee_message: "#0369a1",
+  file_uploaded:    "#d97706",
+  reaction_added:   "#be185d",
+  message_deleted:  "#dc2626",
 };
 
 const TYPE_LABELS = {
-  new_ticket:      "New Ticket",
-  admin_reply:     "Admin Replied",
-  file_uploaded:   "File Uploaded",
-  reaction_added:  "New Reaction",
-  message_deleted: "Message Deleted",
+  new_ticket:       "New Ticket",
+  admin_reply:      "Admin Replied",
+  employee_message: "New Message",
+  file_uploaded:    "File Uploaded",
+  reaction_added:   "New Reaction",
+  message_deleted:  "Message Deleted",
 };
 
 const formatTime = (ts) => {
@@ -93,7 +97,7 @@ export function NotificationProvider({ children }) {
 
   const addToast = (notif) => {
     const toastId = Date.now() + Math.random();
-    setToasts(prev => [...prev.slice(-4), { ...notif, toastId }]); // max 5 toasts
+    setToasts(prev => [...prev.slice(-4), { ...notif, toastId }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.toastId !== toastId)), 5000);
   };
 
@@ -134,7 +138,7 @@ export function NotificationProvider({ children }) {
     }}>
       {children}
 
-      {/* ── TOAST STACK (top-right corner, WhatsApp style) ───────────────── */}
+      {/* ── TOAST STACK (top-right, WhatsApp style) ──────────────────────── */}
       <div style={{
         position: "fixed", top: 16, right: 16, zIndex: 99999,
         display: "flex", flexDirection: "column", gap: 10,
@@ -188,7 +192,7 @@ export function useNotifications() {
   return useContext(NotificationContext);
 }
 
-// ── BELL ICON — drop this anywhere in the sidebar ─────────────────────────
+// ── BELL ICON COMPONENT ────────────────────────────────────────────────────
 export function NotificationBell() {
   const ctx = useNotifications();
   if (!ctx) return null;
@@ -212,7 +216,6 @@ export function NotificationBell() {
         }}
         title="Notifications"
       >
-        {/* Bell SVG */}
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
           <path d="M13.73 21a2 2 0 0 1-3.46 0" />
@@ -231,7 +234,7 @@ export function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown panel */}
+      {/* Dropdown */}
       {dropdownOpen && (
         <div style={{
           position: "fixed", left: 258, top: "auto",

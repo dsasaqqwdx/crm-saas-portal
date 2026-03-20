@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { MessageCircle, X, Send, AlertCircle, RefreshCw, Paperclip, Download, FileText, Image } from "lucide-react";
@@ -122,7 +121,21 @@ export default function ChatbotWidget() {
     if (role !== "user" && !isOpen) setUnreadCount(prev => prev + 1);
   };
 
-  // ─── FILE HANDLING ────────────────────────────────────────────────────────────
+  // ✅ Notify admin when employee sends a message after ticket is created
+  const notifyAdminOfMessage = async (text) => {
+    if (!ticketId) return;
+    try {
+      await axios.post(
+        `${API}/api/support/${ticketId}/employee-message`,
+        { message: text },
+        { headers: getHeaders() }
+      );
+    } catch (err) {
+      // Silent fail — notification is non-critical
+    }
+  };
+
+  // File handling
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -161,6 +174,12 @@ export default function ChatbotWidget() {
     if (!userText || loading) return;
     setInput(""); setShowQuestions(false); setShowContactOption(false);
     addMessage("user", userText);
+
+    // ✅ Notify admin if ticket exists
+    if (ticketId) {
+      notifyAdminOfMessage(userText);
+    }
+
     setLoading(true);
     await new Promise(r => setTimeout(r, 400));
 
@@ -205,7 +224,10 @@ export default function ChatbotWidget() {
     const currentName = getUserName();
     try {
       const chatHistory = messages.map(m => ({ role: m.role === "admin" ? "assistant" : m.role, content: m.content, timestamp: m.timestamp }));
-      const res = await axios.post(`${API}/api/support`, { subject: `Support Request from ${currentName}`, messages: chatHistory }, { headers: getHeaders() });
+      const res = await axios.post(`${API}/api/support`,
+        { subject: `Support Request from ${currentName}`, messages: chatHistory },
+        { headers: getHeaders() }
+      );
       const newTicketId = res.data.data?.ticket_id;
       setTicketId(newTicketId); setSeenReplies([]);
       addMessage("assistant", `Your request has been sent to the admin team. I'll notify you here as soon as they reply. You can also click **"Check Reply"** anytime.\n\n📎 You can now attach files using the **paperclip icon** below!`);
@@ -310,17 +332,13 @@ export default function ChatbotWidget() {
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {attachments.map((att) => (
                     <div key={att.attachment_id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", borderRadius: 8, padding: "6px 10px", border: "1px solid #e2e8f0" }}>
-                      {isImageType(att.file_type)
-                        ? <Image size={16} color="#4f46e5" />
-                        : <FileText size={16} color="#64748b" />
-                      }
+                      {isImageType(att.file_type) ? <Image size={16} color="#4f46e5" /> : <FileText size={16} color="#64748b" />}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{att.file_name}</div>
                         <div style={{ fontSize: 10, color: "#94a3b8" }}>{att.uploader_name} • {formatFileSize(att.file_size)}</div>
                       </div>
                       {isImageType(att.file_type) && (
-                        <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer"
-                          style={{ fontSize: 11, color: "#4f46e5", textDecoration: "none", flexShrink: 0 }}>View</a>
+                        <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#4f46e5", textDecoration: "none", flexShrink: 0 }}>View</a>
                       )}
                       <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" download={att.file_name}
                         style={{ color: "#64748b", display: "flex", alignItems: "center", flexShrink: 0 }}>
@@ -362,9 +380,7 @@ export default function ChatbotWidget() {
           {selectedFile && (
             <div style={{ padding: "8px 12px", background: "#f0f4ff", borderTop: "1px solid #e0e7ff", display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  📎 {selectedFile.name}
-                </div>
+                <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📎 {selectedFile.name}</div>
                 <div style={{ fontSize: 10, color: "#64748b" }}>{formatFileSize(selectedFile.size)}</div>
               </div>
               <button onClick={uploadFile} disabled={uploading}
