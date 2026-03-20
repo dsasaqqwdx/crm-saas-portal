@@ -1,9 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
-import { MessageCircle, X, Send, AlertCircle, RefreshCw, Paperclip, Download, FileText, Image } from "lucide-react";
-
+import {
+  MessageCircle, X, Send, AlertCircle, RefreshCw,
+  Paperclip, Download, FileText, Image, History,
+  Plus, ChevronLeft, Clock, MessageSquare, Loader
+} from "lucide-react";
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
-
 const QA_DATABASE = [
   { keywords: ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "howdy"], answer: " Hello! Welcome to Shnoor chatbot. How can I help you today? I am able to help u with questions related to  company policies, leave, attendance, or technical support." },
   { keywords: ["bye", "goodbye", "see you", "take care", "thanks bye", "thank you bye"], answer: "Goodbye! Have a great day! Feel free to come back anytime you need help. " },
@@ -24,123 +27,283 @@ const QA_DATABASE = [
   { keywords: ["salary slip", "payslip", "pay slip", "download salary", "salary document"], answer: "**To Access Your Salary Slip:**\n\n1. Login to Employee Dashboard\n2. Click **'Payroll'** in the sidebar\n3. Select the month\n4. Click **Download** to get your salary slip as PDF\n\nSlips are available from the date of joining onwards." },
   { keywords: ["holiday", "holidays", "public holiday", "national holiday", "holiday list", "upcoming holiday"], answer: " **Company Holidays:**\n\nYou can view all upcoming holidays in your dashboard:\n\n1. Login to Employee Dashboard\n2. Click **'Holidays'** in the sidebar\n3. Full holiday calendar for the year is listed there\n\nThe company follows national public holidays plus additional company-specific holidays." },
 ];
-
 const OUT_OF_SCOPE_KEYWORDS = ["weather", "news", "cricket", "movie", "film", "food", "recipe", "sports", "stock", "bitcoin", "crypto", "politics", "election", "song", "music", "game", "meme", "joke", "love", "relationship", "marriage", "personal"];
 const QUICK_QUESTIONS = ["What is the leave policy?", "How to mark attendance?", "What are the working hours?", "Work from home policy?", "When is salary credited?", "How to apply for leave?"];
-
-const getToken = () => localStorage.getItem("token");
+const WELCOME_MSG = {
+  role: "assistant",
+  content: " Hi! I'm your Shnoor Chatbot. I can answer questions about **company policies, leave, attendance, and payroll**.\n\nWhat would you like to know?",
+  timestamp: new Date().toISOString(),
+};
+const getToken  = () => localStorage.getItem("token");
 const getUserName = () => localStorage.getItem("name") || "User";
 const getHeaders = () => ({ "x-auth-token": getToken() });
+const safeParseArray = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return []; }
+};
+const buildThread = (ticket) => {
+  const initial = safeParseArray(ticket.messages).map((m) => ({
+    role: m.role === "admin" ? "admin" : m.role === "assistant" ? "assistant" : "user",
+    content: String(m.content || ""),
+    timestamp: m.timestamp || ticket.created_at,
+  }));
+
+  const conv = safeParseArray(ticket.conversation).map((c) => ({
+    role: "admin",
+    content: ` **${c.sender || "Admin"} replied:** ${c.content}`,
+    timestamp: c.timestamp || ticket.updated_at,
+  }));
+
+  return [...initial, ...conv];
+};
 
 const findPredefinedAnswer = (text) => {
   const lower = text.toLowerCase().trim();
   for (const qa of QA_DATABASE) {
-    if (qa.keywords.some(k => lower.includes(k))) return qa.answer;
+    if (qa.keywords.some((k) => lower.includes(k))) return qa.answer;
   }
   return null;
 };
 
-const isOutOfScope = (text) => OUT_OF_SCOPE_KEYWORDS.some(k => text.toLowerCase().includes(k));
+const isOutOfScope = (text) =>
+  OUT_OF_SCOPE_KEYWORDS.some((k) => text.toLowerCase().includes(k));
 
 const formatFileSize = (bytes) => {
   if (!bytes) return "";
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-const isImageType = (fileType) => fileType && fileType.startsWith("image/");
+const isImageType = (ft) => ft && ft.startsWith("image/");
 
+const fmt = (iso) =>
+  new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
+const fmtDate = (iso) => {
+  const d = new Date(iso);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Today";
+  if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+};
+
+const renderContent = (content) =>
+  String(content)
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br/>");
+
+const dotStyle = (delay) => ({
+  width: 7, height: 7, borderRadius: "50%", background: "#94a3b8",
+  display: "inline-block", animation: `bounce 1.2s ${delay}s infinite`,
+});
+const STATUS_COLOR = { open: "#22c55e", inprogress: "#f59e0b", closed: "#94a3b8" };
+const STATUS_LABEL = { open: "Open", inprogress: "In Progress", closed: "Closed" };
+function HistoryPanel({ tickets, activeTicketId, onSelect, onNew, onClose, loading }) {
+  const grouped = {};
+  tickets.forEach((t) => {
+    const label = fmtDate(t.created_at);
+    if (!grouped[label]) grouped[label] = [];
+    grouped[label].push(t);
+  });
+  return (
+    <div style={{ position: "absolute", inset: 0, zIndex: 10, background: "#fff", display: "flex", flexDirection: "column", borderRadius: 16, overflow: "hidden" }}>
+      <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+        <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#fff", display: "flex", padding: 4 }}>
+          <ChevronLeft size={18} />
+        </button>
+        <span style={{ color: "#fff", fontWeight: 700, fontSize: 15, flex: 1 }}>Chat History</span>
+        <button onClick={onNew} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: "5px 10px", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
+          <Plus size={13} /> New Chat
+        </button>
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
+        {loading && (
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 32, gap: 8, color: "#94a3b8", fontSize: 13 }}>
+            <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> Loading history…
+          </div>
+        )}
+        {!loading && tickets.length === 0 && (
+          <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: 32 }}>
+            No chat history yet.<br />Start a new conversation!
+          </div>
+        )}
+        {!loading && Object.entries(grouped).map(([label, group]) => (
+          <div key={label}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 16px 4px" }}>
+              {label}
+            </div>
+            {group.map((t) => {
+              const isActive = t.ticket_id === activeTicketId;
+              return (
+                <div
+                  key={t.ticket_id}
+                  onClick={() => onSelect(t)}
+                  style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", background: isActive ? "#ede9fe" : "transparent", borderLeft: isActive ? "3px solid #7c3aed" : "3px solid transparent", transition: "background 0.15s" }}
+                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "#f8fafc"; }}
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
+                >
+                  <MessageSquare size={15} color={isActive ? "#7c3aed" : "#94a3b8"} style={{ flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? "#4f46e5" : "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {t.subject}
+                    </div>
+                    <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
+                      <Clock size={9} /> {fmt(t.created_at)}
+                      <span style={{ marginLeft: 4, padding: "1px 6px", borderRadius: 10, fontSize: 9, fontWeight: 700, background: (STATUS_COLOR[t.status] || "#94a3b8") + "20", color: STATUS_COLOR[t.status] || "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        {STATUS_LABEL[t.status] || t.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 export default function ChatbotWidget() {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { role: "assistant", content: " Hi! I'm your Shnoor Chatbot. I can answer questions about **company policies, leave, attendance, and payroll**.\n\nWhat would you like to know?", timestamp: new Date() }
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showQuestions, setShowQuestions] = useState(true);
+  const [isOpen, setIsOpen]           = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [tickets, setTickets]           = useState([]);
+  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [activeTicketId, setActiveTicketId] = useState(null);
+  const [messages, setMessages]         = useState([WELCOME_MSG]);
+  const [seenReplyCount, setSeenReplyCount] = useState(0);
+  const [input, setInput]                   = useState("");
+  const [loading, setLoading]               = useState(false);
+  const [showQuestions, setShowQuestions]   = useState(true);
   const [showContactOption, setShowContactOption] = useState(false);
-  const [escalating, setEscalating] = useState(false);
-  const [ticketId, setTicketId] = useState(null);
-  const [seenReplies, setSeenReplies] = useState([]);
-  const [checkingReply, setCheckingReply] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [attachments, setAttachments] = useState([]);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [escalating, setEscalating]         = useState(false);
+  const [checkingReply, setCheckingReply]   = useState(false);
+  const [unreadCount, setUnreadCount]       = useState(0);
+  const [attachments, setAttachments]       = useState([]);
+  const [selectedFile, setSelectedFile]     = useState(null);
+  const [uploading, setUploading]           = useState(false);
   const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-  const fileInputRef = useRef(null);
-
+  const inputRef       = useRef(null);
+  const fileInputRef   = useRef(null);
+  const fetchTickets = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
+      const sorted = (res.data.data || []).sort(
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
+      setTickets(sorted);
+      return sorted;
+    } catch (err) {
+      console.error("fetchTickets error:", err);
+      return [];
+    }
+  }, []);
   useEffect(() => {
-    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (!isOpen) return;
+    setTicketsLoading(true);
+    fetchTickets().finally(() => setTicketsLoading(false));
+  }, [isOpen, fetchTickets]);
+  useEffect(() => {
+    if (!isOpen) return;
+    const iv = setInterval(fetchTickets, 15000);
+    return () => clearInterval(iv);
+  }, [isOpen, fetchTickets]);
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
   useEffect(() => {
     if (isOpen) { setUnreadCount(0); setTimeout(() => inputRef.current?.focus(), 100); }
   }, [isOpen]);
-
-  // Fetch attachments when ticket exists
   useEffect(() => {
-    if (!ticketId) return;
-    const fetchAttachments = async () => {
+    if (!activeTicketId) { setAttachments([]); return; }
+    const go = async () => {
       try {
-        const res = await axios.get(`${API}/api/attachments/${ticketId}`, { headers: getHeaders() });
+        const res = await axios.get(`${API}/api/attachments/${activeTicketId}`, { headers: getHeaders() });
         setAttachments(res.data.data || []);
-      } catch (err) { console.error("Failed to fetch attachments:", err); }
+      } catch {}
     };
-    fetchAttachments();
-    const interval = setInterval(fetchAttachments, 15000);
-    return () => clearInterval(interval);
-  }, [ticketId]); // eslint-disable-line
-
-  // Poll for admin replies
+    go();
+    const iv = setInterval(go, 15000);
+    return () => clearInterval(iv);
+  }, [activeTicketId]);
   useEffect(() => {
-    if (!ticketId) return;
-    const interval = setInterval(async () => {
+    if (!activeTicketId) return;
+    const iv = setInterval(async () => {
       try {
         const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
-        const ticket = (res.data.data || []).find(t => t.ticket_id === ticketId);
+        const sorted = (res.data.data || []).sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        );
+        setTickets(sorted);
+
+        const ticket = sorted.find((t) => t.ticket_id === activeTicketId);
         if (!ticket) return;
-        let conversation = ticket.conversation || [];
-        if (typeof conversation === "string") { try { conversation = JSON.parse(conversation); } catch { conversation = []; } }
-        const newReplies = conversation.filter((_, idx) => idx >= seenReplies.length);
-        if (newReplies.length > 0) {
-          setSeenReplies(conversation);
-          newReplies.forEach(reply => addMessage("admin", ` **${reply.sender || "Admin"} replied:** ${reply.content}`));
+
+        const conv = safeParseArray(ticket.conversation);
+        if (conv.length > seenReplyCount) {
+          const newOnes = conv.slice(seenReplyCount);
+          setSeenReplyCount(conv.length);
+          newOnes.forEach((r) => {
+            const msg = {
+              role: "admin",
+              content: ` **${r.sender || "Admin"} replied:** ${r.content}`,
+              timestamp: r.timestamp || new Date().toISOString(),
+            };
+            setMessages((prev) => [...prev, msg]);
+            if (!isOpen) setUnreadCount((p) => p + 1);
+          });
         }
-      } catch (err) { console.error("Reply poll error:", err); }
+      } catch {}
     }, 15000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketId, seenReplies]);
-
-  const addMessage = (role, content) => {
-    const msg = { role, content, timestamp: new Date() };
-    setMessages(prev => [...prev, msg]);
-    if (role !== "user" && !isOpen) setUnreadCount(prev => prev + 1);
-  };
-
-  // ✅ Notify admin when employee sends a message after ticket is created
-  const notifyAdminOfMessage = async (text) => {
-    if (!ticketId) return;
+    return () => clearInterval(iv);
+  }, [activeTicketId, seenReplyCount, isOpen]);
+  const addMessage = useCallback((role, content) => {
+    const msg = { role, content, timestamp: new Date().toISOString() };
+    setMessages((prev) => [...prev, msg]);
+    if (role !== "user" && !isOpen) setUnreadCount((p) => p + 1);
+  }, [isOpen]);
+  const notifyAdmin = async (text) => {
+    if (!activeTicketId) return;
     try {
       await axios.post(
-        `${API}/api/support/${ticketId}/employee-message`,
+        `${API}/api/support/${activeTicketId}/employee-message`,
         { message: text },
         { headers: getHeaders() }
       );
-    } catch (err) {
-      // Silent fail — notification is non-critical
-    }
+    } catch {}
   };
-
-  // File handling
+  const startNewChat = () => {
+    setActiveTicketId(null);
+    setMessages([{ ...WELCOME_MSG, timestamp: new Date().toISOString() }]);
+    setShowQuestions(true);
+    setShowContactOption(false);
+    setSeenReplyCount(0);
+    setAttachments([]);
+    setInput("");
+    setShowHistory(false);
+  };
+  const loadTicket = (ticket) => {
+    const thread = buildThread(ticket);
+    setActiveTicketId(ticket.ticket_id);
+    setMessages(
+      thread.length > 0
+        ? thread
+        : [{ role: "assistant", content: "This conversation is loaded. You can continue chatting here.", timestamp: ticket.created_at }]
+    );
+    setSeenReplyCount(safeParseArray(ticket.conversation).length);
+    setShowQuestions(false);
+    setShowContactOption(false);
+    setInput("");
+    setShowHistory(false);
+  };
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) {
-      addMessage("assistant", "⚠️ File size must be under **5MB**. Please choose a smaller file.");
+      addMessage("assistant", "File size must be under **5MB**. Please choose a smaller file.");
       return;
     }
     setSelectedFile(file);
@@ -148,45 +311,39 @@ export default function ChatbotWidget() {
 
   const uploadFile = async () => {
     if (!selectedFile) return;
-    if (!ticketId) {
-      addMessage("assistant", "⚠️ Please create a support ticket first by clicking **Contact Support Team**, then you can attach files.");
-      setSelectedFile(null);
-      return;
+    if (!activeTicketId) {
+      addMessage("assistant", "Please create a support ticket first, then you can attach files.");
+      setSelectedFile(null); return;
     }
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const res = await axios.post(`${API}/api/attachments/${ticketId}`, formData, {
+      const res = await axios.post(`${API}/api/attachments/${activeTicketId}`, formData, {
         headers: { ...getHeaders(), "Content-Type": "multipart/form-data" },
       });
-      setAttachments(prev => [...prev, res.data.data]);
-      addMessage("user", `📎 Sent file: **${selectedFile.name}** (${formatFileSize(selectedFile.size)})`);
+      setAttachments((prev) => [...prev, res.data.data]);
+      addMessage("user", `Sent file: **${selectedFile.name}** (${formatFileSize(selectedFile.size)})`);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
-      addMessage("assistant", `⚠️ Upload failed: ${err.response?.data?.message || "Please try again."}`);
+      addMessage("assistant", `Upload failed: ${err.response?.data?.message || "Please try again."}`);
     } finally { setUploading(false); }
   };
-
   const handleSend = async (text) => {
     const userText = text || input.trim();
     if (!userText || loading) return;
     setInput(""); setShowQuestions(false); setShowContactOption(false);
     addMessage("user", userText);
-
-    // ✅ Notify admin if ticket exists
-    if (ticketId) {
-      notifyAdminOfMessage(userText);
-    }
+    if (activeTicketId) notifyAdmin(userText);
 
     setLoading(true);
-    await new Promise(r => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 400));
 
-    const escalateKeywords = ["contact support", "human", "live agent", "speak to someone", "real person", "support team", "contact admin", "talk to admin"];
-    if (escalateKeywords.some(k => userText.toLowerCase().includes(k))) {
+    const escalateKW = ["contact support", "human", "live agent", "speak to someone", "real person", "support team", "contact admin", "talk to admin"];
+    if (escalateKW.some((k) => userText.toLowerCase().includes(k))) {
       setLoading(false);
-      addMessage("assistant", "Sure! I'll connect you with our support team. Please click **Contact Support Team** below to create a ticket. 🎫");
+      addMessage("assistant", "Sure! I'll connect you with our support team. Please click **Contact Support Team** below to create a ticket.");
       setShowContactOption(true); return;
     }
     if (isOutOfScope(userText)) {
@@ -194,140 +351,165 @@ export default function ChatbotWidget() {
       addMessage("assistant", "I'm sorry, that topic is outside my scope. I'm specifically designed to help with **HR-related queries** like leave, attendance, company policies, and payroll.\n\nWould you like to contact our support team for further assistance?");
       setShowContactOption(true); return;
     }
-    const predefinedAnswer = findPredefinedAnswer(userText);
-    if (predefinedAnswer) { setLoading(false); addMessage("assistant", predefinedAnswer); return; }
+    const predefined = findPredefinedAnswer(userText);
+    if (predefined) { setLoading(false); addMessage("assistant", predefined); return; }
 
     try {
-      const history = messages.concat({ role: "user", content: userText });
+      const history = [...messages, { role: "user", content: userText }];
       const response = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 500,
-          system: `You are a chatbot for Shnoor International. Answer only HR-related questions about company policies, leave, attendance, payroll, and technical support. If asked something unrelated to HR, say you cannot help with that topic and suggest contacting support. Be concise and friendly.`,
-          messages: history.filter(m => m.role === "user" || m.role === "assistant").map(m => ({ role: m.role, content: m.content })),
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 500,
+          system: "You are a chatbot for Shnoor International. Answer only HR-related questions about company policies, leave, attendance, payroll, and technical support. If asked something unrelated to HR, say you cannot help with that topic and suggest contacting support. Be concise and friendly.",
+          messages: history
+            .filter((m) => m.role === "user" || m.role === "assistant")
+            .map((m) => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await response.json();
       const aiReply = data.content?.[0]?.text || "I'm not sure about that. Please contact support for help.";
       addMessage("assistant", aiReply);
-      const uncertainPhrases = ["not sure", "don't know", "cannot answer", "contact support", "unable to", "i'm sorry", "outside my"];
-      if (uncertainPhrases.some(p => aiReply.toLowerCase().includes(p))) setTimeout(() => setShowContactOption(true), 500);
-    } catch (err) {
+      const uncertain = ["not sure", "don't know", "cannot answer", "contact support", "unable to", "i'm sorry", "outside my"];
+      if (uncertain.some((p) => aiReply.toLowerCase().includes(p))) setTimeout(() => setShowContactOption(true), 500);
+    } catch {
       addMessage("assistant", "I'm having trouble connecting right now. Please try again or contact our support team for help.");
       setShowContactOption(true);
     } finally { setLoading(false); }
   };
-
   const handleEscalate = async () => {
     setEscalating(true); setShowContactOption(false);
-    const currentName = getUserName();
     try {
-      const chatHistory = messages.map(m => ({ role: m.role === "admin" ? "assistant" : m.role, content: m.content, timestamp: m.timestamp }));
-      const res = await axios.post(`${API}/api/support`,
-        { subject: `Support Request from ${currentName}`, messages: chatHistory },
+      const chatHistory = messages.map((m) => ({
+        role: m.role === "admin" ? "assistant" : m.role,
+        content: m.content,
+        timestamp: m.timestamp,
+      }));
+      const res = await axios.post(
+        `${API}/api/support`,
+        { subject: `Support Request from ${getUserName()}`, messages: chatHistory },
         { headers: getHeaders() }
       );
       const newTicketId = res.data.data?.ticket_id;
-      setTicketId(newTicketId); setSeenReplies([]);
-      addMessage("assistant", `Your request has been sent to the admin team. I'll notify you here as soon as they reply. You can also click **"Check Reply"** anytime.\n\n📎 You can now attach files using the **paperclip icon** below!`);
-    } catch (err) {
+      setActiveTicketId(newTicketId);
+      setSeenReplyCount(0);
+    
+      fetchTickets();
+      addMessage("assistant", `created and sent to the admin team.\n\nI'll notify you here when they reply. You can also click **"Check Reply"** anytime.\n\n📎 You can now attach files using the paperclip icon below.`);
+    } catch {
       addMessage("assistant", "There was an issue creating your support ticket. Please try again.");
     } finally { setEscalating(false); }
   };
-
   const checkForReply = async () => {
-    if (!ticketId) return;
+    if (!activeTicketId) return;
     setCheckingReply(true);
     try {
       const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
-      const ticket = (res.data.data || []).find(t => t.ticket_id === ticketId);
+      const ticket = (res.data.data || []).find((t) => t.ticket_id === activeTicketId);
       if (!ticket) { addMessage("assistant", "Couldn't find your ticket. Please try again."); return; }
-      let conversation = ticket.conversation || [];
-      if (typeof conversation === "string") { try { conversation = JSON.parse(conversation); } catch { conversation = []; } }
-      if (conversation.length === 0) { addMessage("assistant", "No reply yet from the admin. They will get back to you soon."); return; }
-      const newReplies = conversation.filter((_, idx) => idx >= seenReplies.length);
-      if (newReplies.length > 0) {
-        setSeenReplies(conversation);
-        newReplies.forEach(reply => addMessage("admin", ` **${reply.sender || "Admin"} replied:** ${reply.content}`));
+      const conv = safeParseArray(ticket.conversation);
+      if (conv.length === 0) { addMessage("assistant", "No reply yet. The admin will get back to you soon."); return; }
+      if (conv.length > seenReplyCount) {
+        const newOnes = conv.slice(seenReplyCount);
+        setSeenReplyCount(conv.length);
+        newOnes.forEach((r) => addMessage("admin", ` **${r.sender || "Admin"} replied:** ${r.content}`));
       } else {
         addMessage("assistant", "All admin replies are shown above. Is there anything else I can help with?");
       }
-    } catch (err) { addMessage("assistant", "Couldn't check for replies right now. Please try again."); }
+    } catch { addMessage("assistant", "Couldn't check for replies right now. Please try again."); }
     finally { setCheckingReply(false); }
   };
 
   const handleKeyDown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
-  const formatTime = (date) => new Date(date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-
   const getBubbleStyle = (role) => {
-    if (role === "user") return { bg: "linear-gradient(135deg, #4f46e5, #7c3aed)", color: "#fff", radius: "16px 16px 4px 16px", align: "flex-end" };
-    if (role === "admin") return { bg: "#e0e7ff", color: "#1e293b", radius: "16px 16px 16px 4px", align: "flex-start", border: "1px solid #c7d2fe" };
-    return { bg: "#f1f5f9", color: "#1e293b", radius: "16px 16px 16px 4px", align: "flex-start" };
+    if (role === "user")  return { bg: "linear-gradient(135deg, #4f46e5, #7c3aed)", color: "#fff",    radius: "16px 16px 4px 16px",  align: "flex-end" };
+    if (role === "admin") return { bg: "#e0e7ff",                                   color: "#1e293b", radius: "16px 16px 16px 4px",  align: "flex-start", border: "1px solid #c7d2fe" };
+    return                       { bg: "#f1f5f9",                                   color: "#1e293b", radius: "16px 16px 16px 4px",  align: "flex-start" };
   };
-
-  const renderContent = (content) => content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
-
+  const activeTicket = tickets.find((t) => t.ticket_id === activeTicketId);
   return (
     <>
-      {/* Floating Button */}
-      <div onClick={() => setIsOpen(!isOpen)}
+      <div
+        onClick={() => setIsOpen(!isOpen)}
         style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 20px rgba(79,70,229,0.5)", transition: "transform 0.2s" }}
-        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"}
-        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
+        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
+        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
       >
         {isOpen ? <X size={22} color="#fff" /> : <MessageCircle size={22} color="#fff" />}
         {!isOpen && unreadCount > 0 && (
-          <div style={{ position: "absolute", top: -4, right: -4, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 20, height: 20, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</div>
+          <div style={{ position: "absolute", top: -4, right: -4, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 20, height: 20, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {unreadCount}
+          </div>
         )}
       </div>
-
       {isOpen && (
         <div style={{ position: "fixed", bottom: 96, right: 28, zIndex: 9998, width: 375, height: 590, borderRadius: 16, background: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'Segoe UI', sans-serif", animation: "slideUp 0.2s ease" }}>
-
-          {/* Header */}
+          {showHistory && (
+            <HistoryPanel
+              tickets={tickets}
+              activeTicketId={activeTicketId}
+              onSelect={loadTicket}
+              onNew={startNewChat}
+              onClose={() => setShowHistory(false)}
+              loading={ticketsLoading}
+            />
+          )}
           <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "14px 18px", color: "#fff" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🤖</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 15 }}>SHNOOR Assistant</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>S</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, fontSize: 15 }}>SHNOOR Chatbot</div>
                 <div style={{ fontSize: 11, opacity: 0.85, display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
                   Queries + Admin Support
                 </div>
               </div>
-              {ticketId && (
-                <button onClick={checkForReply} disabled={checkingReply}
-                  style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 6, padding: "4px 8px", color: "#fff", fontSize: 11, cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}>
-                  <RefreshCw size={11} /> {checkingReply ? "Checking..." : "Check Reply"}
+              <button onClick={() => setShowHistory(true)} style={hdrBtn}>
+                <History size={12} /> History
+              </button>
+              <button onClick={startNewChat} title="New chat" style={hdrBtn}>
+                <Plus size={13} />
+              </button>
+              {activeTicketId && (
+                <button onClick={checkForReply} disabled={checkingReply} style={hdrBtn}>
+                  <RefreshCw size={11} /> {checkingReply ? "…" : "Check"}
                 </button>
               )}
             </div>
+            {activeTicket && (
+              <div style={{ marginTop: 8, padding: "5px 10px", background: "rgba(255,255,255,0.12)", borderRadius: 8, fontSize: 11, color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: 6 }}>
+                <MessageSquare size={11} style={{ flexShrink: 0 }} />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
+                  #{activeTicketId} · {activeTicket.subject}
+                </span>
+                <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 10, background: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>
+                  {STATUS_LABEL[activeTicket.status] || activeTicket.status}
+                </span>
+              </div>
+            )}
           </div>
-
-          {/* Messages */}
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
             {messages.map((msg, idx) => {
               const style = getBubbleStyle(msg.role);
               return (
                 <div key={idx} style={{ display: "flex", justifyContent: style.align }}>
                   <div style={{ maxWidth: "85%" }}>
-                    <div style={{ padding: "10px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none" }}
+                    <div
+                      style={{ padding: "10px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none" }}
                       dangerouslySetInnerHTML={{ __html: renderContent(msg.content) }}
                     />
                     <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3, textAlign: style.align === "flex-end" ? "right" : "left" }}>
-                      {msg.role === "admin" ? " Admin • " : ""}{formatTime(msg.timestamp)}
+                      {msg.role === "admin" ? "Admin • " : ""}{fmt(msg.timestamp)}
                     </div>
                   </div>
                 </div>
               );
             })}
-
-            {/* Attachments list */}
             {attachments.length > 0 && (
               <div style={{ background: "#f8fafc", borderRadius: 10, padding: 10, border: "1px solid #e2e8f0" }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  📎 Attachments ({attachments.length})
+                Attachments ({attachments.length})
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {attachments.map((att) => (
@@ -340,8 +522,7 @@ export default function ChatbotWidget() {
                       {isImageType(att.file_type) && (
                         <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#4f46e5", textDecoration: "none", flexShrink: 0 }}>View</a>
                       )}
-                      <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" download={att.file_name}
-                        style={{ color: "#64748b", display: "flex", alignItems: "center", flexShrink: 0 }}>
+                      <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" download={att.file_name} style={{ color: "#64748b", display: "flex", alignItems: "center", flexShrink: 0 }}>
                         <Download size={14} />
                       </a>
                     </div>
@@ -349,25 +530,21 @@ export default function ChatbotWidget() {
                 </div>
               </div>
             )}
-
             {loading && (
-              <div style={{ display: "flex", gap: 8 }}>
+              <div style={{ display: "flex" }}>
                 <div style={{ padding: "10px 14px", borderRadius: "16px 16px 16px 4px", background: "#f1f5f9", display: "flex", gap: 4, alignItems: "center" }}>
                   <span style={dotStyle(0)} /><span style={dotStyle(0.2)} /><span style={dotStyle(0.4)} />
                 </div>
               </div>
             )}
-
             {showContactOption && !loading && (
               <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 14px" }}>
                 <div style={{ fontSize: 13, color: "#92400e", fontWeight: 600, marginBottom: 8 }}>Would you like to contact our support team?</div>
                 <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={handleEscalate} disabled={escalating}
-                    style={{ flex: 1, padding: "7px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  <button onClick={handleEscalate} disabled={escalating} style={{ flex: 1, padding: "7px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     {escalating ? "Creating..." : " Yes, Contact Support"}
                   </button>
-                  <button onClick={() => setShowContactOption(false)}
-                    style={{ padding: "7px 12px", background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                  <button onClick={() => setShowContactOption(false)} style={{ padding: "7px 12px", background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     No Thanks
                   </button>
                 </div>
@@ -375,26 +552,20 @@ export default function ChatbotWidget() {
             )}
             <div ref={messagesEndRef} />
           </div>
-
-          {/* File Preview Bar */}
           {selectedFile && (
             <div style={{ padding: "8px 12px", background: "#f0f4ff", borderTop: "1px solid #e0e7ff", display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📎 {selectedFile.name}</div>
                 <div style={{ fontSize: 10, color: "#64748b" }}>{formatFileSize(selectedFile.size)}</div>
               </div>
-              <button onClick={uploadFile} disabled={uploading}
-                style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
+              <button onClick={uploadFile} disabled={uploading} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
                 {uploading ? "Uploading..." : "Send File"}
               </button>
-              <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ef4444", padding: 2, display: "flex", alignItems: "center" }}>
+              <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ef4444", padding: 2, display: "flex", alignItems: "center" }}>
                 <X size={14} />
               </button>
             </div>
           )}
-
-          {/* Quick Questions */}
           {showQuestions && (
             <div style={{ padding: "0 12px 8px" }}>
               <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Quick Questions</div>
@@ -402,38 +573,30 @@ export default function ChatbotWidget() {
                 {QUICK_QUESTIONS.map((q, i) => (
                   <button key={i} onClick={() => handleSend(q)}
                     style={{ background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: 20, padding: "4px 10px", fontSize: 11.5, cursor: "pointer", fontWeight: 500 }}
-                    onMouseEnter={e => e.currentTarget.style.background = "#c7d2fe"}
-                    onMouseLeave={e => e.currentTarget.style.background = "#e0e7ff"}>
+                    onMouseEnter={(e) => e.currentTarget.style.background = "#c7d2fe"}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "#e0e7ff"}>
                     {q}
                   </button>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Contact Support Button */}
           {!showContactOption && (
             <div style={{ padding: "0 12px 8px" }}>
-              <button onClick={() => setShowContactOption(true)}
-                style={{ width: "100%", padding: "7px", background: "#fff7ed", color: "#ea580c", border: "1px solid #fed7aa", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <button onClick={() => setShowContactOption(true)} style={{ width: "100%", padding: "7px", background: "#fff7ed", color: "#ea580c", border: "1px solid #fed7aa", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <AlertCircle size={13} /> Contact Support Team
               </button>
             </div>
           )}
-
-          {/* Input Row */}
           <div style={{ padding: "10px 12px 12px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 8, alignItems: "center" }}>
-            <input ref={fileInputRef} type="file" style={{ display: "none" }}
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-              onChange={handleFileSelect}
-            />
-            <button onClick={() => fileInputRef.current?.click()}
-              title={ticketId ? "Attach file or image" : "Create a ticket first to attach files"}
-              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: ticketId ? "#4f46e5" : "#cbd5e1", flexShrink: 0 }}>
+            <input ref={fileInputRef} type="file" style={{ display: "none" }} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={handleFileSelect} />
+            <button onClick={() => fileInputRef.current?.click()} title={activeTicketId ? "Attach file" : "Create a ticket first to attach files"} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: activeTicketId ? "#4f46e5" : "#cbd5e1", flexShrink: 0 }}>
               <Paperclip size={18} />
             </button>
-            <input ref={inputRef} value={input}
-              onChange={e => setInput(e.target.value)}
+            <input
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask me anything about HR..."
               disabled={loading}
@@ -449,10 +612,15 @@ export default function ChatbotWidget() {
 
       <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+        @keyframes bounce  { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-6px); } }
+        @keyframes spin    { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </>
   );
 }
 
-const dotStyle = (delay) => ({ width: 7, height: 7, borderRadius: "50%", background: "#94a3b8", display: "inline-block", animation: `bounce 1.2s ${delay}s infinite` });
+const hdrBtn = {
+  background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8,
+  padding: "5px 8px", color: "#fff", fontSize: 11, fontWeight: 600,
+  cursor: "pointer", display: "flex", alignItems: "center", gap: 4, flexShrink: 0,
+};
