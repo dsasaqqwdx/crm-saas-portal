@@ -1,138 +1,135 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../../config/db");
-const auth = require("../../middleware/authMiddleware");
+const db = require("../../config/db");
+const verifyToken = require("../../middleware/authMiddleware");
 const { createNotification, getCompanyAdmins, getSuperAdmins } = require("../notifications/notificationHelper");
 
-// GET all actions for a ticket
-router.get("/:ticket_id", auth, async (req, res) => {
+const adminRoles = ["company_admin", "super_admin", "software_owner"];
+
+async function broadcastToAdmins(companyId, userId, type, message, ticketId) {
+  const companyAdmins = await getCompanyAdmins(companyId);
+  const superAdmins   = await getSuperAdmins();
+  const uniqueAdmins  = [...new Set([...companyAdmins, ...superAdmins])];
+  for (const adminId of uniqueAdmins) {
+    if (adminId !== userId) {
+      await createNotification(adminId, type, message, parseInt(ticketId));
+    }
+  }
+}
+
+router.get("/:ticketId", verifyToken, async (req, res) => {
   try {
-    const { ticket_id } = req.params;
-    const result = await pool.query(`SELECT * FROM message_actions WHERE ticket_id = $1`, [ticket_id]);
-    res.json({ success: true, data: result.rows });
+    const { ticketId } = req.params;
+    const { rows } = await db.query(
+      `SELECT * FROM message_actions WHERE ticket_id = $1`,
+      [ticketId]
+    );
+    return res.json({ success: true, data: rows });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Fetch actions error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// POST — toggle reaction
-router.post("/reaction", auth, async (req, res) => {
+router.post("/reaction", verifyToken, async (req, res) => {
   try {
-    const { id: user_id, company_id, role } = req.user;
-    const { ticket_id, message_key, emoji } = req.body;
+    const { id: userId, company_id: companyId, role } = req.user;
+    const { ticket_id: ticketId, message_key: messageKey, emoji } = req.body;
 
-    const existing = await pool.query(
-      `SELECT * FROM message_actions WHERE ticket_id = $1 AND message_key = $2 AND user_id = $3 AND action_type = 'reaction' AND value = $4`,
-      [ticket_id, message_key, user_id, emoji]
+    const { rows: existing } = await db.query(
+      `SELECT * FROM message_actions
+       WHERE ticket_id = $1 AND message_key = $2 AND user_id = $3
+       AND action_type = 'reaction' AND value = $4`,
+      [ticketId, messageKey, userId, emoji]
     );
 
-    if (existing.rows.length > 0) {
-      await pool.query(
-        `DELETE FROM message_actions WHERE ticket_id = $1 AND message_key = $2 AND user_id = $3 AND action_type = 'reaction' AND value = $4`,
-        [ticket_id, message_key, user_id, emoji]
+    if (existing.length > 0) {
+      await db.query(
+        `DELETE FROM message_actions
+         WHERE ticket_id = $1 AND message_key = $2 AND user_id = $3
+         AND action_type = 'reaction' AND value = $4`,
+        [ticketId, messageKey, userId, emoji]
       );
       return res.json({ success: true, toggled: "off" });
     }
 
-    await pool.query(
+    await db.query(
       `INSERT INTO message_actions (ticket_id, message_key, user_id, action_type, value)
        VALUES ($1, $2, $3, 'reaction', $4)
        ON CONFLICT (ticket_id, message_key, user_id, action_type) DO UPDATE SET value = $4`,
-      [ticket_id, message_key, user_id, emoji]
+      [ticketId, messageKey, userId, emoji]
     );
 
-    // Notify — get reactor name
-    const userRes = await pool.query("SELECT name FROM users WHERE user_id = $1", [user_id]);
-    const reactorName = userRes.rows[0]?.name || "Someone";
+    const reactorRow   = await db.query("SELECT name FROM users WHERE user_id = $1", [userId]);
+    const reactorName  = reactorRow.rows[0]?.name ?? "Someone";
+    const ticketRow    = await db.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticketId]);
+    const ticketOwner  = ticketRow.rows[0]?.user_id;
+    const notifMessage = `${emoji} ${reactorName} reacted to a message`;
 
-    // Get ticket owner
-    const ticketRes = await pool.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticket_id]);
-    const ticketOwnerId = ticketRes.rows[0]?.user_id;
-
-    if (role === "company_admin" || role === "super_admin" || role === "software_owner") {
-      // Admin reacted — notify employee
-      if (ticketOwnerId && ticketOwnerId !== user_id) {
-        await createNotification(ticketOwnerId, "reaction_added",
-          `${emoji} ${reactorName} reacted to a message`, parseInt(ticket_id));
+    if (adminRoles.includes(role)) {
+      if (ticketOwner && ticketOwner !== userId) {
+        await createNotification(ticketOwner, "reaction_added", notifMessage, parseInt(ticketId));
       }
     } else {
-      // Employee reacted — notify admins
-      const admins = await getCompanyAdmins(company_id);
-      const superAdmins = await getSuperAdmins();
-      const allAdmins = [...new Set([...admins, ...superAdmins])];
-      for (const adminId of allAdmins) {
-        if (adminId !== user_id) {
-          await createNotification(adminId, "reaction_added",
-            `${emoji} ${reactorName} reacted to a message`, parseInt(ticket_id));
-        }
-      }
+      await broadcastToAdmins(companyId, userId, "reaction_added", notifMessage, ticketId);
     }
 
-    res.json({ success: true, toggled: "on" });
+    return res.json({ success: true, toggled: "on" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Reaction error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// POST — delete for me
-router.post("/delete-for-me", auth, async (req, res) => {
+router.post("/delete-for-me", verifyToken, async (req, res) => {
   try {
-    const { id: user_id } = req.user;
-    const { ticket_id, message_key } = req.body;
-    await pool.query(
+    const { id: userId } = req.user;
+    const { ticket_id: ticketId, message_key: messageKey } = req.body;
+
+    await db.query(
       `INSERT INTO message_actions (ticket_id, message_key, user_id, action_type, value)
        VALUES ($1, $2, $3, 'delete_for_me', 'true')
        ON CONFLICT (ticket_id, message_key, user_id, action_type) DO NOTHING`,
-      [ticket_id, message_key, user_id]
+      [ticketId, messageKey, userId]
     );
-    res.json({ success: true });
+
+    return res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Delete for me error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// POST — delete for everyone
-router.post("/delete-for-everyone", auth, async (req, res) => {
+router.post("/delete-for-everyone", verifyToken, async (req, res) => {
   try {
-    const { id: user_id, company_id, role } = req.user;
-    const { ticket_id, message_key } = req.body;
-    await pool.query(
+    const { id: userId, company_id: companyId, role } = req.user;
+    const { ticket_id: ticketId, message_key: messageKey } = req.body;
+
+    await db.query(
       `INSERT INTO message_actions (ticket_id, message_key, user_id, action_type, value)
        VALUES ($1, $2, $3, 'delete_for_everyone', 'true')
        ON CONFLICT (ticket_id, message_key, user_id, action_type) DO NOTHING`,
-      [ticket_id, message_key, user_id]
+      [ticketId, messageKey, userId]
     );
 
-    // Notify the other party
-    const userRes = await pool.query("SELECT name FROM users WHERE user_id = $1", [user_id]);
-    const deleterName = userRes.rows[0]?.name || "Someone";
-    const ticketRes = await pool.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticket_id]);
-    const ticketOwnerId = ticketRes.rows[0]?.user_id;
+    const deleterRow   = await db.query("SELECT name FROM users WHERE user_id = $1", [userId]);
+    const deleterName  = deleterRow.rows[0]?.name ?? "Someone";
+    const ticketRow    = await db.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticketId]);
+    const ticketOwner  = ticketRow.rows[0]?.user_id;
+    const notifMessage = `🗑️ ${deleterName} deleted a message for everyone`;
 
-    if (role === "company_admin" || role === "super_admin" || role === "software_owner") {
-      if (ticketOwnerId && ticketOwnerId !== user_id) {
-        await createNotification(ticketOwnerId, "message_deleted",
-          `🗑️ ${deleterName} deleted a message for everyone`, parseInt(ticket_id));
+    if (adminRoles.includes(role)) {
+      if (ticketOwner && ticketOwner !== userId) {
+        await createNotification(ticketOwner, "message_deleted", notifMessage, parseInt(ticketId));
       }
     } else {
-      const admins = await getCompanyAdmins(company_id);
-      const superAdmins = await getSuperAdmins();
-      const allAdmins = [...new Set([...admins, ...superAdmins])];
-      for (const adminId of allAdmins) {
-        if (adminId !== user_id) {
-          await createNotification(adminId, "message_deleted",
-            `🗑️ ${deleterName} deleted a message for everyone`, parseInt(ticket_id));
-        }
-      }
+      await broadcastToAdmins(companyId, userId, "message_deleted", notifMessage, ticketId);
     }
 
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Delete for everyone error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

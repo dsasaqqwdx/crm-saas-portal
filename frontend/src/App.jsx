@@ -49,83 +49,66 @@ function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        
+        <Route path="/register" element={<Register />} />     
         <Route path="/superadmin-dashboard" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <SuperadminDashboard />
           </ProtectedRoute>
         } />
-
         <Route path="/superadmin/companiespage" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <CompaniesPage />
           </ProtectedRoute>
         } />
-
         <Route path="/superadmin/pricing" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <PricingPage />
           </ProtectedRoute>
         } />
-
         <Route path="/transactions" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <TransactionsPage />
           </ProtectedRoute>
         } />
-
         <Route path="/add-superadmin" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <AddSuperadminPage />
           </ProtectedRoute>
-        } />
-
-        
+        } /> 
         <Route path="/dashboard" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <Dashboard />
           </ProtectedRoute>
-        } />
-
-       
+        } />    
         <Route path="/admin-attendance" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <AdminAttendancePage />
           </ProtectedRoute>
         } />
-
         <Route path="/add-employee" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <AddEmployee />
           </ProtectedRoute>
         } />
-
         <Route path="/payroll" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <Payroll />
           </ProtectedRoute>
         } />
-
         <Route path="/departments" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <DepartmentsPage />
           </ProtectedRoute>
-        } />
-
-        <Route path="/designations" element={
+        } /><Route path="/designations" element={
           <ProtectedRoute allowedRoles={['company_admin']}>
             <Designations />
           </ProtectedRoute>
         } />
-
-     
-        <Route path="/employee-dashboard" element={
+<Route path="/employee-dashboard" element={
           <ProtectedRoute allowedRoles={['employee']}>
             <EmployeeDashboard />
           </ProtectedRoute>
-        } />
+ } />
 
         <Route path="/attendance" element={
           <ProtectedRoute allowedRoles={['employee']}>
@@ -140,7 +123,7 @@ function App() {
         
         <Route path="/holidays" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
-            <Holidays />
+     <Holidays />
           </ProtectedRoute>
         } />
 

@@ -1,99 +1,93 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../../config/db");
-const auth = require("../../middleware/authMiddleware");
+const db = require("../../config/db");
+const verifyToken = require("../../middleware/authMiddleware");
 
-// GET — all notifications for logged in user
-router.get("/", auth, async (req, res) => {
+router.get("/", verifyToken, async (req, res) => {
   try {
-    const { id: user_id } = req.user;
-    const result = await pool.query(
-      `SELECT *, id as notification_id FROM notifications 
+    const { id: userId } = req.user;
+    const { rows } = await db.query(
+      `SELECT *, id AS notification_id FROM notifications
        WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50`,
-      [user_id]
+      [userId]
     );
-    res.json({ success: true, data: result.rows });
+    return res.json({ success: true, data: rows });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Fetch notifications error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// GET — unread count only
-router.get("/unread-count", auth, async (req, res) => {
+router.get("/unread-count", verifyToken, async (req, res) => {
   try {
-    const { id: user_id } = req.user;
-    const result = await pool.query(
-      `SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false`,
-      [user_id]
+    const { id: userId } = req.user;
+    const { rows } = await db.query(
+      SELECT COUNT(*) FROM notifications WHERE user_id = $1 AND is_read = false,
+      [userId]
     );
-    res.json({ success: true, count: parseInt(result.rows[0].count) });
+    return res.json({ success: true, count: parseInt(rows[0].count) });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Unread count error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// POST — create a notification
 router.post("/", async (req, res) => {
   try {
     const { user_id, ticket_id, type, message } = req.body;
     if (!user_id || !type || !message)
-      return res.status(400).json({ success: false, message: "Missing fields" });
-    const result = await pool.query(
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+
+    const { rows } = await db.query(
       `INSERT INTO notifications (user_id, ticket_id, type, message)
-       VALUES ($1, $2, $3, $4) RETURNING *, id as notification_id`,
-      [user_id, ticket_id || null, type, message]
+       VALUES ($1, $2, $3, $4)
+       RETURNING *, id AS notification_id`,
+      [user_id, ticket_id ?? null, type, message]
     );
-    res.status(201).json({ success: true, data: result.rows[0] });
+    return res.status(201).json({ success: true, data: rows[0] });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Create notification error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// ✅ SPECIFIC routes BEFORE parameterized /:id routes
-
-// PUT — mark ALL as read
-router.put("/mark-all-read", auth, async (req, res) => {
+router.put("/mark-all-read", verifyToken, async (req, res) => {
   try {
-    const { id: user_id } = req.user;
-    await pool.query(
-      `UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false`,
-      [user_id]
+    const { id: userId } = req.user;
+    await db.query(
+      UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false,
+      [userId]
     );
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Mark all read error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// DELETE — clear all
-router.delete("/clear-all", auth, async (req, res) => {
+router.delete("/clear-all", verifyToken, async (req, res) => {
   try {
-    const { id: user_id } = req.user;
-    await pool.query(`DELETE FROM notifications WHERE user_id = $1`, [user_id]);
-    res.json({ success: true });
+    const { id: userId } = req.user;
+    await db.query(DELETE FROM notifications WHERE user_id = $1, [userId]);
+    return res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Clear notifications error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
-// PUT — mark ONE as read (parameterized — MUST be last)
-router.put("/:id/read", auth, async (req, res) => {
+router.put("/:id/read", verifyToken, async (req, res) => {
   try {
-    const { id: user_id } = req.user;
-    const { id } = req.params;
-    await pool.query(
-      `UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2`,
-      [id, user_id]
+    const { id: userId } = req.user;
+    const notifId = req.params.id;
+    await db.query(
+      UPDATE notifications SET is_read = true WHERE id = $1 AND user_id = $2,
+      [notifId, userId]
     );
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, message: "Server error" });
+    console.error("Mark single read error:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
