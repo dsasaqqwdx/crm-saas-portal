@@ -58,7 +58,7 @@ const Sidebar = () => {
     icon: <CreditCard size={18} />, 
     roles: ["super_admin", "software_owner"] 
   },
-  { name: "Support Tickets", path: "/support", icon: <HeadphonesIcon size={18} />, roles: ["company_admin"] },
+  { name: "Support ", path: "/support", icon: <HeadphonesIcon size={18} />, roles: ["company_admin"] },
 ];
 
   const menuItems = allItems.filter(item => item.roles.includes(role));

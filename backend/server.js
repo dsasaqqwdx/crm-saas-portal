@@ -26,10 +26,16 @@ const saasRoutes = require('./modules/saas/saasRoutes');
 const departmentRoutes = require("./modules/departments/departmentRoutes");
 const designationRoutes = require("./routes/designations");
 const planRoutes = require("./modules/saas/planRoutes");
+const attachmentRoutes = require("./modules/support/attachmentRoutes");
+app.use("/api/attachments", attachmentRoutes);
+const path = require("path");
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/transactions", require("./modules/transactions/transactionRoutes"));
 app.use("/api/designations", designationRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/support", require("./modules/support/supportRoutes"));
+
+
 
 
 app.use('/api/auth', authRoutes);
