@@ -146,7 +146,7 @@ router.post("/:id/reply", auth, isAdmin, async (req, res) => {
     const ticketOwner = ticketRes.rows[0].user_id;
     const preview = reply_text.trim().substring(0, 60) + (reply_text.length > 60 ? "..." : "");
     await createNotification(ticketOwner, "admin_reply",
-      `💬 ${senderName} replied: "${preview}"`, parseInt(id));
+      ` ${senderName} replied: "${preview}"`, parseInt(id));
 
     res.json({ success: true, data: result.rows[0], message: "Reply sent successfully" });
   } catch (err) {

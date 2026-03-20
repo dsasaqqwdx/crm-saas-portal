@@ -4,7 +4,7 @@ const pool = require("../../config/db");
 const auth = require("../../middleware/authMiddleware");
 const { createNotification, getCompanyAdmins, getSuperAdmins } = require("../notifications/notificationHelper");
 
-// GET all actions for a ticket
+
 router.get("/:ticket_id", auth, async (req, res) => {
   try {
     const { ticket_id } = req.params;
@@ -16,7 +16,7 @@ router.get("/:ticket_id", auth, async (req, res) => {
   }
 });
 
-// POST — toggle reaction
+
 router.post("/reaction", auth, async (req, res) => {
   try {
     const { id: user_id, company_id, role } = req.user;
@@ -42,22 +42,22 @@ router.post("/reaction", auth, async (req, res) => {
       [ticket_id, message_key, user_id, emoji]
     );
 
-    // Notify — get reactor name
+    
     const userRes = await pool.query("SELECT name FROM users WHERE user_id = $1", [user_id]);
     const reactorName = userRes.rows[0]?.name || "Someone";
 
-    // Get ticket owner
+   
     const ticketRes = await pool.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticket_id]);
     const ticketOwnerId = ticketRes.rows[0]?.user_id;
 
     if (role === "company_admin" || role === "super_admin" || role === "software_owner") {
-      // Admin reacted — notify employee
+      
       if (ticketOwnerId && ticketOwnerId !== user_id) {
         await createNotification(ticketOwnerId, "reaction_added",
           `${emoji} ${reactorName} reacted to a message`, parseInt(ticket_id));
       }
     } else {
-      // Employee reacted — notify admins
+      
       const admins = await getCompanyAdmins(company_id);
       const superAdmins = await getSuperAdmins();
       const allAdmins = [...new Set([...admins, ...superAdmins])];
@@ -76,7 +76,7 @@ router.post("/reaction", auth, async (req, res) => {
   }
 });
 
-// POST — delete for me
+
 router.post("/delete-for-me", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -94,7 +94,7 @@ router.post("/delete-for-me", auth, async (req, res) => {
   }
 });
 
-// POST — delete for everyone
+
 router.post("/delete-for-everyone", auth, async (req, res) => {
   try {
     const { id: user_id, company_id, role } = req.user;
@@ -106,7 +106,7 @@ router.post("/delete-for-everyone", auth, async (req, res) => {
       [ticket_id, message_key, user_id]
     );
 
-    // Notify the other party
+    
     const userRes = await pool.query("SELECT name FROM users WHERE user_id = $1", [user_id]);
     const deleterName = userRes.rows[0]?.name || "Someone";
     const ticketRes = await pool.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticket_id]);

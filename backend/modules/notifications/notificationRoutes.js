@@ -3,7 +3,6 @@ const router = express.Router();
 const pool = require("../../config/db");
 const auth = require("../../middleware/authMiddleware");
 
-// GET — all notifications for logged in user
 router.get("/", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -19,7 +18,6 @@ router.get("/", auth, async (req, res) => {
   }
 });
 
-// GET — unread count only
 router.get("/unread-count", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -34,7 +32,6 @@ router.get("/unread-count", auth, async (req, res) => {
   }
 });
 
-// POST — create a notification
 router.post("/", async (req, res) => {
   try {
     const { user_id, ticket_id, type, message } = req.body;
@@ -52,9 +49,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// ✅ SPECIFIC routes BEFORE parameterized /:id routes
-
-// PUT — mark ALL as read
 router.put("/mark-all-read", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -69,7 +63,7 @@ router.put("/mark-all-read", auth, async (req, res) => {
   }
 });
 
-// DELETE — clear all
+
 router.delete("/clear-all", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -81,7 +75,6 @@ router.delete("/clear-all", auth, async (req, res) => {
   }
 });
 
-// PUT — mark ONE as read (parameterized — MUST be last)
 router.put("/:id/read", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;

@@ -257,7 +257,7 @@ export default function ChatbotWidget() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading]     = useState(false);
   const [contextMenu, setContextMenu] = useState(null);
-  const [emojiPicker, setEmojiPicker] = useState(null); // msgIdx showing picker
+  const [emojiPicker, setEmojiPicker] = useState(null); 
 
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);

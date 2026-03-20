@@ -150,7 +150,7 @@ export function NotificationProvider({ children }) {
               pointerEvents: "all",
             }}>
             <div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>
-              {TYPE_ICONS[toast.type] || "🔔"}
+              {TYPE_ICONS[toast.type] || ".."}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: TYPE_COLORS[toast.type] || "#4f46e5", marginBottom: 2 }}>
@@ -253,7 +253,7 @@ export function NotificationBell() {
           <div style={{ maxHeight: 400, overflowY: "auto" }}>
             {notifications.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 16px", color: "#94a3b8" }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>🔔</div>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>..</div>
                 <div style={{ fontSize: 13 }}>No notifications yet</div>
               </div>
             ) : notifications.map(n => (
@@ -273,7 +273,7 @@ export function NotificationBell() {
                   background: `${TYPE_COLORS[n.type] || "#4f46e5"}18`,
                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
                 }}>
-                  {TYPE_ICONS[n.type] || "🔔"}
+                  {TYPE_ICONS[n.type] || ".."}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: "#1e293b", lineHeight: 1.45, fontWeight: n.is_read ? 400 : 600 }}>
