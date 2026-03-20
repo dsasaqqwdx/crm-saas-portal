@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { NotificationBell } from "../context/NotificationContext";
 import {
   LayoutDashboard,
   UserPlus,
@@ -69,6 +70,7 @@ const Sidebar = () => {
   };
 
   return (
+    
     <div
       className="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white shadow"
       style={{ width: "250px", height: "100vh", position: "fixed", zIndex: 1000 }}
@@ -104,7 +106,10 @@ const Sidebar = () => {
           );
         })}
       </ul>
-
+ <div className="px-2 pt-2 pb-1 d-flex align-items-center justify-content-between">
+    <span style={{ fontSize: "0.75rem", color: "#6c757d" }}>Notifications</span>
+    <NotificationBell />
+  </div>
       
       <div className="mt-auto pt-3 px-2 border-top border-secondary">
         <div className="small text-muted mb-0" style={{ fontSize: '0.75rem' }}>Account</div>
@@ -121,7 +126,9 @@ const Sidebar = () => {
           <span className="fw-bold">Logout</span>
         </button>
       </div>
+      
     </div>
+    
   );
 };
 

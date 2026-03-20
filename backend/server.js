@@ -35,9 +35,9 @@ app.use("/api/designations", designationRoutes);
 app.use("/api/plans", planRoutes);
 app.use("/api/support", require("./modules/support/supportRoutes"));
 
+app.use("/api/notifications", require("./modules/notifications/notificationRoutes"));
 
-
-
+app.use("/api/message-actions", require("./modules/support/messageActionRoutes"));
 app.use('/api/auth', authRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/employees', employeeRoutes);
