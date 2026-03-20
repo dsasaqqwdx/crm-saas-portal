@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
 import {
   MessageCircle, X, Send, AlertCircle, RefreshCw,
   Paperclip, Download, FileText, Image, History,
-  Plus, ChevronLeft, Clock, MessageSquare, Loader
+  Plus, ChevronLeft, Clock, MessageSquare, Loader, Trash2
 } from "lucide-react";
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const QA_DATABASE = [
@@ -34,7 +33,8 @@ const WELCOME_MSG = {
   content: " Hi! I'm your Shnoor Chatbot. I can answer questions about **company policies, leave, attendance, and payroll**.\n\nWhat would you like to know?",
   timestamp: new Date().toISOString(),
 };
-const getToken  = () => localStorage.getItem("token");
+const getToken   = () => localStorage.getItem("token");
+const getUserId  = () => localStorage.getItem("user_id") || null;
 const getUserName = () => localStorage.getItem("name") || "User";
 const getHeaders = () => ({ "x-auth-token": getToken() });
 const safeParseArray = (raw) => {
@@ -42,18 +42,27 @@ const safeParseArray = (raw) => {
   if (Array.isArray(raw)) return raw;
   try { return JSON.parse(raw); } catch { return []; }
 };
-const buildThread = (ticket) => {
-  const initial = safeParseArray(ticket.messages).map((m) => ({
-    role: m.role === "admin" ? "admin" : m.role === "assistant" ? "assistant" : "user",
-    content: String(m.content || ""),
-    timestamp: m.timestamp || ticket.created_at,
-  }));
 
-  const conv = safeParseArray(ticket.conversation).map((c) => ({
-    role: "admin",
-    content: ` **${c.sender || "Admin"} replied:** ${c.content}`,
-    timestamp: c.timestamp || ticket.updated_at,
-  }));
+const buildThread = (ticket, currentUserId) => {
+  const initial = safeParseArray(ticket.messages)
+    .filter(m => !(m.deletedFor || []).includes(currentUserId))
+    .map((m, idx) => ({
+      role: m.role === "admin" ? "admin" : m.role === "assistant" ? "assistant" : "user",
+      content: String(m.content || ""),
+      timestamp: m.timestamp || ticket.created_at,
+      _source: "messages",
+      _index: idx,
+    }));
+
+  const conv = safeParseArray(ticket.conversation)
+    .filter(c => !(c.deletedFor || []).includes(currentUserId))
+    .map((c, idx) => ({
+      role: "admin",
+      content: ` **${c.sender || "Admin"} replied:** ${c.content}`,
+      timestamp: c.timestamp || ticket.updated_at,
+      _source: "conversation",
+      _index: idx,
+    }));
 
   return [...initial, ...conv];
 };
@@ -77,10 +86,8 @@ const formatFileSize = (bytes) => {
 };
 
 const isImageType = (ft) => ft && ft.startsWith("image/");
-
 const fmt = (iso) =>
   new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-
 const fmtDate = (iso) => {
   const d = new Date(iso);
   const today = new Date();
@@ -90,18 +97,61 @@ const fmtDate = (iso) => {
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 };
-
 const renderContent = (content) =>
   String(content)
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/\n/g, "<br/>");
-
 const dotStyle = (delay) => ({
   width: 7, height: 7, borderRadius: "50%", background: "#94a3b8",
   display: "inline-block", animation: `bounce 1.2s ${delay}s infinite`,
 });
 const STATUS_COLOR = { open: "#22c55e", inprogress: "#f59e0b", closed: "#94a3b8" };
 const STATUS_LABEL = { open: "Open", inprogress: "In Progress", closed: "Closed" };
+
+// ── Context Menu ──────────────────────────────────────────────────────────────
+function MessageContextMenu({ x, y, canDeleteForEveryone, onDeleteForMe, onDeleteForEveryone, onClose }) {
+  useEffect(() => {
+    const handler = () => onClose();
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{
+        position: "fixed", top: y, left: x, zIndex: 99999,
+        background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)", minWidth: 180, overflow: "hidden",
+      }}
+      onClick={e => e.stopPropagation()}
+    >
+      <button
+        onClick={onDeleteForMe}
+        style={ctxBtnStyle}
+        onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      >
+        <Trash2 size={13} color="#64748b" /> Delete for me
+      </button>
+      {canDeleteForEveryone && (
+        <button
+          onClick={onDeleteForEveryone}
+          style={{ ...ctxBtnStyle, color: "#ef4444", borderTop: "1px solid #f1f5f9" }}
+          onMouseEnter={e => e.currentTarget.style.background = "#fff1f2"}
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+        >
+          <Trash2 size={13} color="#ef4444" /> Delete for everyone
+        </button>
+      )}
+    </div>
+  );
+}
+const ctxBtnStyle = {
+  display: "flex", alignItems: "center", gap: 8, width: "100%",
+  padding: "9px 14px", background: "transparent", border: "none",
+  cursor: "pointer", fontSize: 13, color: "#1e293b", textAlign: "left",
+};
+
 function HistoryPanel({ tickets, activeTicketId, onSelect, onNew, onClose, loading }) {
   const grouped = {};
   tickets.forEach((t) => {
@@ -133,19 +183,14 @@ function HistoryPanel({ tickets, activeTicketId, onSelect, onNew, onClose, loadi
         )}
         {!loading && Object.entries(grouped).map(([label, group]) => (
           <div key={label}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 16px 4px" }}>
-              {label}
-            </div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 16px 4px" }}>{label}</div>
             {group.map((t) => {
               const isActive = t.ticket_id === activeTicketId;
               return (
-                <div
-                  key={t.ticket_id}
-                  onClick={() => onSelect(t)}
+                <div key={t.ticket_id} onClick={() => onSelect(t)}
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", background: isActive ? "#ede9fe" : "transparent", borderLeft: isActive ? "3px solid #7c3aed" : "3px solid transparent", transition: "background 0.15s" }}
                   onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "#f8fafc"; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}
-                >
+                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
                   <MessageSquare size={15} color={isActive ? "#7c3aed" : "#94a3b8"} style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? "#4f46e5" : "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -167,6 +212,7 @@ function HistoryPanel({ tickets, activeTicketId, onSelect, onNew, onClose, loadi
     </div>
   );
 }
+
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen]           = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -185,9 +231,18 @@ export default function ChatbotWidget() {
   const [attachments, setAttachments]       = useState([]);
   const [selectedFile, setSelectedFile]     = useState(null);
   const [uploading, setUploading]           = useState(false);
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState(null); // { x, y, msgIdx }
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
   const fileInputRef   = useRef(null);
+
+  const currentUserId = getUserId();
+  // Employee is NOT admin — "delete for everyone" only available for admin-role messages if user is admin
+  // For chatbot widget (employee side), "delete for everyone" only if the message is theirs (user role)
+  // We show "delete for everyone" only if message role is "user" (employee's own message) AND ticket exists
+  const canDeleteForEveryone = (msg) => msg.role === "user" && !!activeTicketId;
+
   const fetchTickets = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
@@ -201,22 +256,27 @@ export default function ChatbotWidget() {
       return [];
     }
   }, []);
+
   useEffect(() => {
     if (!isOpen) return;
     setTicketsLoading(true);
     fetchTickets().finally(() => setTicketsLoading(false));
   }, [isOpen, fetchTickets]);
+
   useEffect(() => {
     if (!isOpen) return;
     const iv = setInterval(fetchTickets, 15000);
     return () => clearInterval(iv);
   }, [isOpen, fetchTickets]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
   useEffect(() => {
     if (isOpen) { setUnreadCount(0); setTimeout(() => inputRef.current?.focus(), 100); }
   }, [isOpen]);
+
   useEffect(() => {
     if (!activeTicketId) { setAttachments([]); return; }
     const go = async () => {
@@ -229,6 +289,7 @@ export default function ChatbotWidget() {
     const iv = setInterval(go, 15000);
     return () => clearInterval(iv);
   }, [activeTicketId]);
+
   useEffect(() => {
     if (!activeTicketId) return;
     const iv = setInterval(async () => {
@@ -238,10 +299,8 @@ export default function ChatbotWidget() {
           (a, b) => new Date(b.created_at) - new Date(a.created_at)
         );
         setTickets(sorted);
-
         const ticket = sorted.find((t) => t.ticket_id === activeTicketId);
         if (!ticket) return;
-
         const conv = safeParseArray(ticket.conversation);
         if (conv.length > seenReplyCount) {
           const newOnes = conv.slice(seenReplyCount);
@@ -251,6 +310,8 @@ export default function ChatbotWidget() {
               role: "admin",
               content: ` **${r.sender || "Admin"} replied:** ${r.content}`,
               timestamp: r.timestamp || new Date().toISOString(),
+              _source: "conversation",
+              _index: seenReplyCount,
             };
             setMessages((prev) => [...prev, msg]);
             if (!isOpen) setUnreadCount((p) => p + 1);
@@ -260,11 +321,13 @@ export default function ChatbotWidget() {
     }, 15000);
     return () => clearInterval(iv);
   }, [activeTicketId, seenReplyCount, isOpen]);
-  const addMessage = useCallback((role, content) => {
-    const msg = { role, content, timestamp: new Date().toISOString() };
+
+  const addMessage = useCallback((role, content, meta = {}) => {
+    const msg = { role, content, timestamp: new Date().toISOString(), ...meta };
     setMessages((prev) => [...prev, msg]);
     if (role !== "user" && !isOpen) setUnreadCount((p) => p + 1);
   }, [isOpen]);
+
   const notifyAdmin = async (text) => {
     if (!activeTicketId) return;
     try {
@@ -275,6 +338,7 @@ export default function ChatbotWidget() {
       );
     } catch {}
   };
+
   const startNewChat = () => {
     setActiveTicketId(null);
     setMessages([{ ...WELCOME_MSG, timestamp: new Date().toISOString() }]);
@@ -284,9 +348,11 @@ export default function ChatbotWidget() {
     setAttachments([]);
     setInput("");
     setShowHistory(false);
+    setContextMenu(null);
   };
+
   const loadTicket = (ticket) => {
-    const thread = buildThread(ticket);
+    const thread = buildThread(ticket, currentUserId);
     setActiveTicketId(ticket.ticket_id);
     setMessages(
       thread.length > 0
@@ -298,7 +364,52 @@ export default function ChatbotWidget() {
     setShowContactOption(false);
     setInput("");
     setShowHistory(false);
+    setContextMenu(null);
   };
+
+  // ── Delete message ────────────────────────────────────────────────────────
+  const handleDeleteMessage = async (msgIdx, scope) => {
+    setContextMenu(null);
+    const msg = messages[msgIdx];
+
+    // If no ticket yet, just remove locally
+    if (!activeTicketId || msg._source === undefined) {
+      setMessages(prev => prev.filter((_, i) => i !== msgIdx));
+      return;
+    }
+
+    try {
+      await axios.delete(
+        `${API}/api/support/${activeTicketId}/message`,
+        {
+          headers: getHeaders(),
+          data: {
+            messageIndex: msg._index,
+            messageSource: msg._source,
+            scope,
+          },
+        }
+      );
+      if (scope === "everyone") {
+        // Remove from local state entirely
+        setMessages(prev => prev.filter((_, i) => i !== msgIdx));
+      } else {
+        // Remove from local state for this user
+        setMessages(prev => prev.filter((_, i) => i !== msgIdx));
+      }
+    } catch (err) {
+      console.error("Delete message failed:", err);
+    }
+  };
+
+  const handleRightClick = (e, msgIdx) => {
+    e.preventDefault();
+    const msg = messages[msgIdx];
+    // Don't show context menu for welcome/system messages without source info
+    if (msg.role === "assistant" && msg._source === undefined) return;
+    setContextMenu({ x: e.clientX, y: e.clientY, msgIdx });
+  };
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -330,16 +441,15 @@ export default function ChatbotWidget() {
       addMessage("assistant", `Upload failed: ${err.response?.data?.message || "Please try again."}`);
     } finally { setUploading(false); }
   };
+
   const handleSend = async (text) => {
     const userText = text || input.trim();
     if (!userText || loading) return;
     setInput(""); setShowQuestions(false); setShowContactOption(false);
     addMessage("user", userText);
     if (activeTicketId) notifyAdmin(userText);
-
     setLoading(true);
     await new Promise((r) => setTimeout(r, 400));
-
     const escalateKW = ["contact support", "human", "live agent", "speak to someone", "real person", "support team", "contact admin", "talk to admin"];
     if (escalateKW.some((k) => userText.toLowerCase().includes(k))) {
       setLoading(false);
@@ -353,7 +463,6 @@ export default function ChatbotWidget() {
     }
     const predefined = findPredefinedAnswer(userText);
     if (predefined) { setLoading(false); addMessage("assistant", predefined); return; }
-
     try {
       const history = [...messages, { role: "user", content: userText }];
       const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -378,6 +487,7 @@ export default function ChatbotWidget() {
       setShowContactOption(true);
     } finally { setLoading(false); }
   };
+
   const handleEscalate = async () => {
     setEscalating(true); setShowContactOption(false);
     try {
@@ -394,13 +504,13 @@ export default function ChatbotWidget() {
       const newTicketId = res.data.data?.ticket_id;
       setActiveTicketId(newTicketId);
       setSeenReplyCount(0);
-    
       fetchTickets();
-      addMessage("assistant", `created and sent to the admin team.\n\nI'll notify you here when they reply. You can also click **"Check Reply"** anytime.\n\n📎 You can now attach files using the paperclip icon below.`);
+      addMessage("assistant", `Ticket created and sent to the admin team.\n\nI'll notify you here when they reply. You can also click **"Check Reply"** anytime.\n\n📎 You can now attach files using the paperclip icon below.`);
     } catch {
       addMessage("assistant", "There was an issue creating your support ticket. Please try again.");
     } finally { setEscalating(false); }
   };
+
   const checkForReply = async () => {
     if (!activeTicketId) return;
     setCheckingReply(true);
@@ -413,7 +523,7 @@ export default function ChatbotWidget() {
       if (conv.length > seenReplyCount) {
         const newOnes = conv.slice(seenReplyCount);
         setSeenReplyCount(conv.length);
-        newOnes.forEach((r) => addMessage("admin", ` **${r.sender || "Admin"} replied:** ${r.content}`));
+        newOnes.forEach((r, i) => addMessage("admin", ` **${r.sender || "Admin"} replied:** ${r.content}`, { _source: "conversation", _index: seenReplyCount + i }));
       } else {
         addMessage("assistant", "All admin replies are shown above. Is there anything else I can help with?");
       }
@@ -422,12 +532,15 @@ export default function ChatbotWidget() {
   };
 
   const handleKeyDown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+
   const getBubbleStyle = (role) => {
     if (role === "user")  return { bg: "linear-gradient(135deg, #4f46e5, #7c3aed)", color: "#fff",    radius: "16px 16px 4px 16px",  align: "flex-end" };
     if (role === "admin") return { bg: "#e0e7ff",                                   color: "#1e293b", radius: "16px 16px 16px 4px",  align: "flex-start", border: "1px solid #c7d2fe" };
     return                       { bg: "#f1f5f9",                                   color: "#1e293b", radius: "16px 16px 16px 4px",  align: "flex-start" };
   };
+
   const activeTicket = tickets.find((t) => t.ticket_id === activeTicketId);
+
   return (
     <>
       <div
@@ -443,6 +556,7 @@ export default function ChatbotWidget() {
           </div>
         )}
       </div>
+
       {isOpen && (
         <div style={{ position: "fixed", bottom: 96, right: 28, zIndex: 9998, width: 375, height: 590, borderRadius: 16, background: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'Segoe UI', sans-serif", animation: "slideUp 0.2s ease" }}>
           {showHistory && (
@@ -455,6 +569,8 @@ export default function ChatbotWidget() {
               loading={ticketsLoading}
             />
           )}
+
+          {/* Header */}
           <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "14px 18px", color: "#fff" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>S</div>
@@ -465,12 +581,8 @@ export default function ChatbotWidget() {
                   Queries + Admin Support
                 </div>
               </div>
-              <button onClick={() => setShowHistory(true)} style={hdrBtn}>
-                <History size={12} /> History
-              </button>
-              <button onClick={startNewChat} title="New chat" style={hdrBtn}>
-                <Plus size={13} />
-              </button>
+              <button onClick={() => setShowHistory(true)} style={hdrBtn}><History size={12} /> History</button>
+              <button onClick={startNewChat} title="New chat" style={hdrBtn}><Plus size={13} /></button>
               {activeTicketId && (
                 <button onClick={checkForReply} disabled={checkingReply} style={hdrBtn}>
                   <RefreshCw size={11} /> {checkingReply ? "…" : "Check"}
@@ -489,15 +601,53 @@ export default function ChatbotWidget() {
               </div>
             )}
           </div>
+
+          {/* Messages */}
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
             {messages.map((msg, idx) => {
               const style = getBubbleStyle(msg.role);
+              const isDeletable = msg.role !== "assistant" || msg._source !== undefined;
               return (
                 <div key={idx} style={{ display: "flex", justifyContent: style.align }}>
-                  <div style={{ maxWidth: "85%" }}>
+                  <div style={{ maxWidth: "85%", position: "relative" }}
+                    onContextMenu={(e) => isDeletable && handleRightClick(e, idx)}
+                  >
+                    {/* Hover delete icon */}
+                    {isDeletable && (
+                      <div
+                        className="msg-delete-btn"
+                        onClick={(e) => { e.stopPropagation(); handleRightClick(e, idx); }}
+                        style={{
+                          position: "absolute",
+                          top: -8,
+                          [style.align === "flex-end" ? "left" : "right"]: -22,
+                          opacity: 0,
+                          transition: "opacity 0.15s",
+                          cursor: "pointer",
+                          padding: 3,
+                          background: "#f1f5f9",
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          zIndex: 1,
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+                      >
+                        <Trash2 size={11} color="#94a3b8" />
+                      </div>
+                    )}
                     <div
-                      style={{ padding: "10px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none" }}
+                      style={{ padding: "10px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none", cursor: isDeletable ? "context-menu" : "default" }}
                       dangerouslySetInnerHTML={{ __html: renderContent(msg.content) }}
+                      onMouseEnter={e => {
+                        const btn = e.currentTarget.parentElement.querySelector(".msg-delete-btn");
+                        if (btn) btn.style.opacity = "1";
+                      }}
+                      onMouseLeave={e => {
+                        const btn = e.currentTarget.parentElement.querySelector(".msg-delete-btn");
+                        if (btn) btn.style.opacity = "0";
+                      }}
                     />
                     <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3, textAlign: style.align === "flex-end" ? "right" : "left" }}>
                       {msg.role === "admin" ? "Admin • " : ""}{fmt(msg.timestamp)}
@@ -506,10 +656,12 @@ export default function ChatbotWidget() {
                 </div>
               );
             })}
+
+            {/* Attachments */}
             {attachments.length > 0 && (
               <div style={{ background: "#f8fafc", borderRadius: 10, padding: 10, border: "1px solid #e2e8f0" }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                Attachments ({attachments.length})
+                  Attachments ({attachments.length})
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                   {attachments.map((att) => (
@@ -530,6 +682,7 @@ export default function ChatbotWidget() {
                 </div>
               </div>
             )}
+
             {loading && (
               <div style={{ display: "flex" }}>
                 <div style={{ padding: "10px 14px", borderRadius: "16px 16px 16px 4px", background: "#f1f5f9", display: "flex", gap: 4, alignItems: "center" }}>
@@ -537,12 +690,13 @@ export default function ChatbotWidget() {
                 </div>
               </div>
             )}
+
             {showContactOption && !loading && (
               <div style={{ background: "#fff7ed", border: "1px solid #fed7aa", borderRadius: 12, padding: "12px 14px" }}>
                 <div style={{ fontSize: 13, color: "#92400e", fontWeight: 600, marginBottom: 8 }}>Would you like to contact our support team?</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={handleEscalate} disabled={escalating} style={{ flex: 1, padding: "7px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                    {escalating ? "Creating..." : " Yes, Contact Support"}
+                    {escalating ? "Creating..." : "✅ Yes, Contact Support"}
                   </button>
                   <button onClick={() => setShowContactOption(false)} style={{ padding: "7px 12px", background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     No Thanks
@@ -552,6 +706,7 @@ export default function ChatbotWidget() {
             )}
             <div ref={messagesEndRef} />
           </div>
+
           {selectedFile && (
             <div style={{ padding: "8px 12px", background: "#f0f4ff", borderTop: "1px solid #e0e7ff", display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -566,6 +721,7 @@ export default function ChatbotWidget() {
               </button>
             </div>
           )}
+
           {showQuestions && (
             <div style={{ padding: "0 12px 8px" }}>
               <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Quick Questions</div>
@@ -581,6 +737,7 @@ export default function ChatbotWidget() {
               </div>
             </div>
           )}
+
           {!showContactOption && (
             <div style={{ padding: "0 12px 8px" }}>
               <button onClick={() => setShowContactOption(true)} style={{ width: "100%", padding: "7px", background: "#fff7ed", color: "#ea580c", border: "1px solid #fed7aa", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
@@ -588,26 +745,34 @@ export default function ChatbotWidget() {
               </button>
             </div>
           )}
+
           <div style={{ padding: "10px 12px 12px", borderTop: "1px solid #f1f5f9", display: "flex", gap: 8, alignItems: "center" }}>
             <input ref={fileInputRef} type="file" style={{ display: "none" }} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={handleFileSelect} />
-            <button onClick={() => fileInputRef.current?.click()} title={activeTicketId ? "Attach file" : "Create a ticket first to attach files"} style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: activeTicketId ? "#4f46e5" : "#cbd5e1", flexShrink: 0 }}>
+            <button onClick={() => fileInputRef.current?.click()} title={activeTicketId ? "Attach file" : "Create a ticket first to attach files"}
+              style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: activeTicketId ? "#4f46e5" : "#cbd5e1", flexShrink: 0 }}>
               <Paperclip size={18} />
             </button>
-            <input
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask me anything about HR..."
-              disabled={loading}
-              style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 24, padding: "8px 14px", fontSize: 13, outline: "none", background: "#f8fafc" }}
-            />
+            <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
+              placeholder="Ask me anything about HR..." disabled={loading}
+              style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 24, padding: "8px 14px", fontSize: 13, outline: "none", background: "#f8fafc" }} />
             <button onClick={() => handleSend()} disabled={!input.trim() || loading}
               style={{ width: 36, height: 36, borderRadius: "50%", flexShrink: 0, background: input.trim() && !loading ? "linear-gradient(135deg, #4f46e5, #7c3aed)" : "#e2e8f0", border: "none", cursor: input.trim() && !loading ? "pointer" : "default", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Send size={15} color={input.trim() && !loading ? "#fff" : "#94a3b8"} />
             </button>
           </div>
         </div>
+      )}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <MessageContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          canDeleteForEveryone={canDeleteForEveryone(messages[contextMenu.msgIdx])}
+          onDeleteForMe={() => handleDeleteMessage(contextMenu.msgIdx, "self")}
+          onDeleteForEveryone={() => handleDeleteMessage(contextMenu.msgIdx, "everyone")}
+          onClose={() => setContextMenu(null)}
+        />
       )}
 
       <style>{`

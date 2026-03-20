@@ -1,8 +1,7 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Sidebar from "../../../layouts/Sidebar";
-import { Paperclip, Download, FileText, Image, X } from "lucide-react";
+import { Paperclip, Download, FileText, Image, X, Trash2 } from "lucide-react";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
@@ -22,18 +21,63 @@ const formatFileSize = (bytes) => {
 
 const isImageType = (fileType) => fileType && fileType.startsWith("image/");
 
+// ── Context Menu ──────────────────────────────────────────────────────────────
+function MessageContextMenu({ x, y, onDeleteForMe, onDeleteForEveryone, onClose }) {
+  useEffect(() => {
+    const handler = () => onClose();
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{
+        position: "fixed", top: y, left: x, zIndex: 99999,
+        background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)", minWidth: 190, overflow: "hidden",
+      }}
+      onClick={e => e.stopPropagation()}
+    >
+      <button
+        onClick={onDeleteForMe}
+        style={ctxBtn}
+        onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      >
+        <Trash2 size={13} color="#64748b" style={{ flexShrink: 0 }} />
+        Delete for me
+      </button>
+      <button
+        onClick={onDeleteForEveryone}
+        style={{ ...ctxBtn, color: "#ef4444", borderTop: "1px solid #f1f5f9" }}
+        onMouseEnter={e => e.currentTarget.style.background = "#fff1f2"}
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+      >
+        <Trash2 size={13} color="#ef4444" style={{ flexShrink: 0 }} />
+        Delete for everyone
+      </button>
+    </div>
+  );
+}
+const ctxBtn = {
+  display: "flex", alignItems: "center", gap: 8, width: "100%",
+  padding: "9px 14px", background: "transparent", border: "none",
+  cursor: "pointer", fontSize: 13, color: "#1e293b", textAlign: "left",
+};
+
 export default function AdminSupportPage() {
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [tickets, setTickets]           = useState([]);
+  const [loading, setLoading]           = useState(true);
   const [selectedTicket, setSelectedTicket] = useState(null);
-  const [replyText, setReplyText] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [filterStatus, setFilterStatus] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [openCount, setOpenCount] = useState(0);
-  const [attachments, setAttachments] = useState([]);
+  const [replyText, setReplyText]       = useState("");
+  const [submitting, setSubmitting]     = useState(false);
+  const [toast, setToast]               = useState(null);
+  const [openCount, setOpenCount]       = useState(0);
+  const [attachments, setAttachments]   = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [uploading, setUploading]       = useState(false);
+  // Context menu
+  const [contextMenu, setContextMenu]   = useState(null); // { x, y, source, index }
   const conversationEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -120,7 +164,40 @@ export default function AdminSupportPage() {
     } catch (err) { showToast("Delete failed", "error"); }
   };
 
-  // ─── FILE UPLOAD ─────────────────────────────────────────────────────────────
+  // ── Delete individual message ─────────────────────────────────────────────
+  const handleDeleteMessage = async (source, index, scope) => {
+    setContextMenu(null);
+    if (!selectedTicket) return;
+    try {
+      await axios.delete(
+        `${API}/api/support/${selectedTicket.ticket_id}/message`,
+        {
+          headers,
+          data: {
+            messageIndex: index,
+            messageSource: source,
+            scope,
+          },
+        }
+      );
+      showToast(scope === "everyone" ? "Message deleted for everyone" : "Message deleted for you");
+      // Refresh ticket data
+      const res = await axios.get(`${API}/api/support`, { headers });
+      const allTickets = res.data.data || [];
+      setTickets(allTickets);
+      const updated = allTickets.find(t => t.ticket_id === selectedTicket.ticket_id);
+      if (updated) setSelectedTicket(updated);
+    } catch (err) {
+      showToast(err.response?.data?.message || "Delete failed", "error");
+    }
+  };
+
+  const handleRightClick = (e, source, index) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, source, index });
+  };
+
+  // ── File Upload ────────────────────────────────────────────────────────────
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -151,12 +228,12 @@ export default function AdminSupportPage() {
     return Array.isArray(data) ? data : [];
   };
 
-  const filtered = tickets;
-
   const formatTime = (ts) => {
     if (!ts) return "";
     return new Date(ts).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
   };
+
+  const adminUserId = localStorage.getItem("user_id");
 
   return (
     <div className="d-flex bg-light min-vh-100">
@@ -167,6 +244,17 @@ export default function AdminSupportPage() {
           <div style={{ position: "fixed", top: 20, right: 20, zIndex: 9999, background: toast.type === "error" ? "#ef4444" : "#10b981", color: "#fff", padding: "12px 20px", borderRadius: 8, fontWeight: 500, boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
             {toast.message}
           </div>
+        )}
+
+        {/* Context Menu */}
+        {contextMenu && (
+          <MessageContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            onDeleteForMe={() => handleDeleteMessage(contextMenu.source, contextMenu.index, "self")}
+            onDeleteForEveryone={() => handleDeleteMessage(contextMenu.source, contextMenu.index, "everyone")}
+            onClose={() => setContextMenu(null)}
+          />
         )}
 
         <div className="d-flex justify-content-between align-items-center mb-4">
@@ -185,14 +273,14 @@ export default function AdminSupportPage() {
             <div className="card border-0 shadow-sm">
               <div className="card-body p-0">
                 {loading ? <div className="text-center text-muted p-4">Loading...</div>
-                  : filtered.length === 0 ? <div className="text-center text-muted p-4">No tickets found.</div>
-                  : filtered.map(ticket => {
+                  : tickets.length === 0 ? <div className="text-center text-muted p-4">No tickets found.</div>
+                  : tickets.map(ticket => {
                     const sc = STATUS_COLORS[ticket.status] || STATUS_COLORS.open;
                     const isSelected = selectedTicket?.ticket_id === ticket.ticket_id;
                     const convCount = parseJSON(ticket.conversation).length;
                     return (
                       <div key={ticket.ticket_id}
-                        onClick={() => { setSelectedTicket(ticket); setReplyText(""); setSelectedFile(null); }}
+                        onClick={() => { setSelectedTicket(ticket); setReplyText(""); setSelectedFile(null); setContextMenu(null); }}
                         style={{ padding: "12px 14px", borderBottom: "1px solid #f1f5f9", cursor: "pointer", background: isSelected ? "#f0f4ff" : "#fff", borderLeft: isSelected ? "3px solid #4f46e5" : "3px solid transparent" }}>
                         <div className="d-flex justify-content-between align-items-start mb-1">
                           <span style={{ fontWeight: 600, fontSize: 13, color: "#1e293b" }}>
@@ -239,7 +327,7 @@ export default function AdminSupportPage() {
                       </div>
                     </div>
                     <button className="btn btn-sm" style={{ background: "#fff1f2", color: "#ef4444", fontWeight: 500 }}
-                      onClick={() => handleDelete(selectedTicket.ticket_id)}>Delete</button>
+                      onClick={() => handleDelete(selectedTicket.ticket_id)}>Delete Ticket</button>
                   </div>
 
                   {/* Status */}
@@ -257,31 +345,133 @@ export default function AdminSupportPage() {
                     })}
                   </div>
 
+                  {/* Conversation hint */}
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 6 }}>
+                    Right-click or hover any message to delete it.
+                  </div>
+
                   {/* Full Conversation */}
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8 }}>Full Conversation</div>
-                  <div style={{ background: "#f8fafc", borderRadius: 10, padding: 12, maxHeight: 220, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
-                    {parseJSON(selectedTicket.messages).map((msg, idx) => (
-                      <div key={`msg-${idx}`} style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start" }}>
-                        <div style={{ maxWidth: "80%", padding: "8px 12px", borderRadius: msg.role === "user" ? "12px 12px 3px 12px" : "12px 12px 12px 3px", background: msg.role === "user" ? "#4f46e5" : "#fff", color: msg.role === "user" ? "#fff" : "#1e293b", fontSize: 13, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-                          <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 2, fontWeight: 600 }}>{msg.role === "user" ? selectedTicket.user_name : "AI Chatbot"}</div>
-                          {msg.content}
+                  <div style={{ background: "#f8fafc", borderRadius: 10, padding: 12, maxHeight: 260, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+
+                    {/* Initial messages (from chatbot) */}
+                    {parseJSON(selectedTicket.messages)
+                      .filter(msg => !(msg.deletedFor || []).includes(adminUserId))
+                      .map((msg, idx) => (
+                        <div key={`msg-${idx}`}
+                          style={{ display: "flex", justifyContent: msg.role === "user" ? "flex-end" : "flex-start", position: "relative" }}
+                          onContextMenu={(e) => handleRightClick(e, "messages", idx)}
+                        >
+                          <div
+                            className="conv-msg-wrap"
+                            style={{ maxWidth: "80%", position: "relative", cursor: "context-menu" }}
+                          >
+                            {/* Hover delete icon */}
+                            <div
+                              className="conv-del-btn"
+                              style={{
+                                position: "absolute",
+                                top: -8,
+                                [msg.role === "user" ? "left" : "right"]: -22,
+                                opacity: 0,
+                                transition: "opacity 0.15s",
+                                cursor: "pointer",
+                                padding: 3,
+                                background: "#f1f5f9",
+                                borderRadius: "50%",
+                                zIndex: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                              onClick={(e) => { e.stopPropagation(); handleRightClick(e, "messages", idx); }}
+                              onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+                            >
+                              <Trash2 size={11} color="#94a3b8" />
+                            </div>
+                            <div
+                              style={{ padding: "8px 12px", borderRadius: msg.role === "user" ? "12px 12px 3px 12px" : "12px 12px 12px 3px", background: msg.role === "user" ? "#4f46e5" : "#fff", color: msg.role === "user" ? "#fff" : "#1e293b", fontSize: 13, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+                              onMouseEnter={e => {
+                                const btn = e.currentTarget.parentElement.querySelector(".conv-del-btn");
+                                if (btn) btn.style.opacity = "1";
+                              }}
+                              onMouseLeave={e => {
+                                const btn = e.currentTarget.parentElement.querySelector(".conv-del-btn");
+                                if (btn) btn.style.opacity = "0";
+                              }}
+                            >
+                              <div style={{ fontSize: 10, opacity: 0.7, marginBottom: 2, fontWeight: 600 }}>
+                                {msg.role === "user" ? selectedTicket.user_name : "AI Chatbot"}
+                              </div>
+                              {msg.content}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {parseJSON(selectedTicket.messages).length > 0 && parseJSON(selectedTicket.conversation).length > 0 && (
-                      <div style={{ textAlign: "center", fontSize: 11, color: "#94a3b8", padding: "4px 0" }}>── Admin Replies ──</div>
-                    )}
-                    {parseJSON(selectedTicket.conversation).map((msg, idx) => (
-                      <div key={`conv-${idx}`} style={{ display: "flex", justifyContent: "flex-start" }}>
-                        <div style={{ maxWidth: "80%", padding: "8px 12px", borderRadius: "12px 12px 12px 3px", background: "#e0e7ff", color: "#1e293b", fontSize: 13, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}>
-                          <div style={{ fontSize: 10, color: "#4f46e5", marginBottom: 2, fontWeight: 700 }}>{msg.sender || "Admin"} • {formatTime(msg.timestamp)}</div>
-                          {msg.content}
+                      ))}
+
+                    {parseJSON(selectedTicket.messages).filter(m => !(m.deletedFor || []).includes(adminUserId)).length > 0 &&
+                      parseJSON(selectedTicket.conversation).filter(c => !(c.deletedFor || []).includes(adminUserId)).length > 0 && (
+                        <div style={{ textAlign: "center", fontSize: 11, color: "#94a3b8", padding: "4px 0" }}>── Admin Replies ──</div>
+                      )}
+
+                    {/* Admin conversation replies */}
+                    {parseJSON(selectedTicket.conversation)
+                      .filter(msg => !(msg.deletedFor || []).includes(adminUserId))
+                      .map((msg, idx) => (
+                        <div key={`conv-${idx}`}
+                          style={{ display: "flex", justifyContent: "flex-start", position: "relative" }}
+                          onContextMenu={(e) => handleRightClick(e, "conversation", idx)}
+                        >
+                          <div
+                            className="conv-msg-wrap"
+                            style={{ maxWidth: "80%", position: "relative", cursor: "context-menu" }}
+                          >
+                            <div
+                              className="conv-del-btn"
+                              style={{
+                                position: "absolute",
+                                top: -8,
+                                right: -22,
+                                opacity: 0,
+                                transition: "opacity 0.15s",
+                                cursor: "pointer",
+                                padding: 3,
+                                background: "#f1f5f9",
+                                borderRadius: "50%",
+                                zIndex: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                              onClick={(e) => { e.stopPropagation(); handleRightClick(e, "conversation", idx); }}
+                              onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+                            >
+                              <Trash2 size={11} color="#94a3b8" />
+                            </div>
+                            <div
+                              style={{ padding: "8px 12px", borderRadius: "12px 12px 12px 3px", background: "#e0e7ff", color: "#1e293b", fontSize: 13, lineHeight: 1.5, boxShadow: "0 1px 3px rgba(0,0,0,0.08)" }}
+                              onMouseEnter={e => {
+                                const btn = e.currentTarget.parentElement.querySelector(".conv-del-btn");
+                                if (btn) btn.style.opacity = "1";
+                              }}
+                              onMouseLeave={e => {
+                                const btn = e.currentTarget.parentElement.querySelector(".conv-del-btn");
+                                if (btn) btn.style.opacity = "0";
+                              }}
+                            >
+                              <div style={{ fontSize: 10, color: "#4f46e5", marginBottom: 2, fontWeight: 700 }}>
+                                {msg.sender || "Admin"} • {formatTime(msg.timestamp)}
+                              </div>
+                              {msg.content}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {parseJSON(selectedTicket.messages).length === 0 && parseJSON(selectedTicket.conversation).length === 0 && (
-                      <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No messages yet.</div>
-                    )}
+                      ))}
+
+                    {parseJSON(selectedTicket.messages).filter(m => !(m.deletedFor || []).includes(adminUserId)).length === 0 &&
+                      parseJSON(selectedTicket.conversation).filter(c => !(c.deletedFor || []).includes(adminUserId)).length === 0 && (
+                        <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13 }}>No messages yet.</div>
+                      )}
                     <div ref={conversationEndRef} />
                   </div>
 
@@ -294,8 +484,7 @@ export default function AdminSupportPage() {
                       <div>
                         <input ref={fileInputRef} type="file" style={{ display: "none" }}
                           accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
-                          onChange={handleFileSelect}
-                        />
+                          onChange={handleFileSelect} />
                         <button onClick={() => fileInputRef.current?.click()}
                           className="btn btn-sm btn-outline-primary"
                           style={{ fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
@@ -304,15 +493,13 @@ export default function AdminSupportPage() {
                       </div>
                     </div>
 
-                    {/* File Preview */}
                     {selectedFile && (
                       <div style={{ background: "#f0f4ff", borderRadius: 8, padding: "8px 12px", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, border: "1px solid #e0e7ff" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📎 {selectedFile.name}</div>
                           <div style={{ fontSize: 10, color: "#64748b" }}>{formatFileSize(selectedFile.size)}</div>
                         </div>
-                        <button onClick={uploadFile} disabled={uploading}
-                          className="btn btn-sm btn-primary" style={{ fontSize: 12, flexShrink: 0 }}>
+                        <button onClick={uploadFile} disabled={uploading} className="btn btn-sm btn-primary" style={{ fontSize: 12, flexShrink: 0 }}>
                           {uploading ? "Uploading..." : "Upload"}
                         </button>
                         <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
@@ -322,7 +509,6 @@ export default function AdminSupportPage() {
                       </div>
                     )}
 
-                    {/* Attachments List */}
                     {attachments.length > 0 ? (
                       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                         {attachments.map((att) => (

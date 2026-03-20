@@ -1,5 +1,3 @@
-
-// 
 const express = require("express");
 const router = express.Router();
 const pool = require("../../config/db");
@@ -158,13 +156,82 @@ router.post("/:id/reply", auth, isAdmin, async (req, res) => {
       [JSON.stringify(conversation), reply_text.trim(), admin_id, id]
     );
 
-    // Notify ticket owner (employee)
     const ticketOwner = ticketRes.rows[0].user_id;
     const preview = reply_text.trim().substring(0, 60) + (reply_text.length > 60 ? "..." : "");
     await createNotification(ticketOwner, "admin_reply",
       `💬 ${senderName} replied: "${preview}"`, parseInt(id));
 
     res.json({ success: true, data: result.rows[0], message: "Reply sent successfully" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// DELETE — a specific message from a ticket
+// Body: { messageIndex, messageSource, scope }
+//   messageSource: "messages" | "conversation"
+//   scope: "self" | "everyone"
+//   messageIndex: index within the source array
+router.delete("/:id/message", auth, async (req, res) => {
+  try {
+    const { id: user_id, role } = req.user;
+    const { id } = req.params;
+    const { messageIndex, messageSource, scope } = req.body;
+
+    if (messageIndex === undefined || !messageSource || !scope) {
+      return res.status(400).json({ success: false, message: "messageIndex, messageSource, and scope are required" });
+    }
+
+    // Only admins can delete for everyone
+    const adminRoles = ["company_admin", "super_admin", "software_owner"];
+    if (scope === "everyone" && !adminRoles.includes(role)) {
+      return res.status(403).json({ success: false, message: "Only admins can delete for everyone" });
+    }
+
+    const ticketRes = await pool.query("SELECT * FROM support_tickets WHERE ticket_id = $1", [id]);
+    if (ticketRes.rows.length === 0)
+      return res.status(404).json({ success: false, message: "Ticket not found" });
+
+    const ticket = ticketRes.rows[0];
+
+    // Parse the array
+    let parseArr = (raw) => {
+      if (!raw) return [];
+      if (Array.isArray(raw)) return raw;
+      try { return JSON.parse(raw); } catch { return []; }
+    };
+
+    let messages = parseArr(ticket.messages);
+    let conversation = parseArr(ticket.conversation);
+
+    const targetArr = messageSource === "conversation" ? conversation : messages;
+
+    if (messageIndex < 0 || messageIndex >= targetArr.length) {
+      return res.status(400).json({ success: false, message: "Invalid message index" });
+    }
+
+    if (scope === "everyone") {
+      // Remove the message from the array entirely
+      targetArr.splice(messageIndex, 1);
+    } else {
+      // "Delete for me" — mark as deleted for this user only (soft delete)
+      targetArr[messageIndex] = {
+        ...targetArr[messageIndex],
+        deletedFor: [...(targetArr[messageIndex].deletedFor || []), user_id],
+      };
+    }
+
+    // Write back
+    const updatedMessages    = messageSource === "messages"      ? JSON.stringify(targetArr) : JSON.stringify(messages);
+    const updatedConversation = messageSource === "conversation"  ? JSON.stringify(targetArr) : JSON.stringify(conversation);
+
+    await pool.query(
+      `UPDATE support_tickets SET messages = $1, conversation = $2, updated_at = NOW() WHERE ticket_id = $3`,
+      [updatedMessages, updatedConversation, id]
+    );
+
+    res.json({ success: true, message: scope === "everyone" ? "Message deleted for everyone" : "Message deleted for you" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
