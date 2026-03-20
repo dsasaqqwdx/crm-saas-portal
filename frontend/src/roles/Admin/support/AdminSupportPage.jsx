@@ -5,14 +5,6 @@ import { Paperclip, Download, FileText, Image, X, Trash2 } from "lucide-react";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const EMOJI_LIST = ["👍", "👎", "❤️", "😂", "😮", "😢", "🔥", "✅"];
-
-const STATUS_COLORS = {
-  open:       { bg: "#fef9c3", text: "#a16207" },
-  inprogress: { bg: "#e0e7ff", text: "#4f46e5" },
-  resolved:   { bg: "#dcfce7", text: "#16a34a" },
-  closed:     { bg: "#f1f5f9", text: "#64748b" },
-};
-
 const formatFileSize = (bytes) => {
   if (!bytes) return "";
   if (bytes < 1024) return bytes + " B";
@@ -32,7 +24,6 @@ const parseObj = (raw) => {
   try { return JSON.parse(raw); } catch { return {}; }
 };
 
-// ── Emoji Picker ──────────────────────────────────────────────────────────────
 function EmojiPicker({ onSelect, onClose }) {
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
@@ -57,8 +48,6 @@ function EmojiPicker({ onSelect, onClose }) {
     </div>
   );
 }
-
-// ── Reaction Bar ──────────────────────────────────────────────────────────────
 function ReactionBar({ reactions, messageKey, currentUserId, onReact }) {
   if (!reactions || !reactions[messageKey]) return null;
   const msgReactions = reactions[messageKey];
@@ -88,8 +77,6 @@ function ReactionBar({ reactions, messageKey, currentUserId, onReact }) {
     </div>
   );
 }
-
-// ── Context Menu ──────────────────────────────────────────────────────────────
 function MessageContextMenu({ x, y, onDeleteForMe, onDeleteForEveryone, onClose }) {
   useEffect(() => {
     const h = () => onClose();
@@ -117,8 +104,6 @@ const ctxBtn = {
   padding: "9px 14px", background: "transparent", border: "none",
   cursor: "pointer", fontSize: 13, color: "#1e293b", textAlign: "left",
 };
-
-// ── Message Bubble with hover actions ────────────────────────────────────────
 function MessageBubble({ msg, source, index, isUser, userName, reactions, messageKey, currentUserId, onReact, onRightClick, activeEmojiPicker, setActiveEmojiPicker }) {
   const [hovered, setHovered] = useState(false);
 
@@ -128,8 +113,6 @@ function MessageBubble({ msg, source, index, isUser, userName, reactions, messag
       <div style={{ maxWidth: "80%", position: "relative" }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => { setHovered(false); }}>
-
-        {/* Action buttons */}
         {hovered && (
           <div style={{
             position: "absolute", top: -10,
@@ -150,8 +133,6 @@ function MessageBubble({ msg, source, index, isUser, userName, reactions, messag
             ><Trash2 size={11} color="#94a3b8" /></button>
           </div>
         )}
-
-        {/* Emoji Picker */}
         {activeEmojiPicker === messageKey && (
           <div style={{ position: "absolute", [isUser ? "right" : "left"]: 0, bottom: "calc(100% + 6px)", zIndex: 9999 }}>
             <EmojiPicker
@@ -160,8 +141,6 @@ function MessageBubble({ msg, source, index, isUser, userName, reactions, messag
             />
           </div>
         )}
-
-        {/* Bubble */}
         <div style={{
           padding: "8px 12px",
           borderRadius: isUser ? "12px 12px 3px 12px" : "12px 12px 12px 3px",
@@ -176,8 +155,6 @@ function MessageBubble({ msg, source, index, isUser, userName, reactions, messag
           </div>
           {msg.content}
         </div>
-
-        {/* Reaction bar */}
         {messageKey && (
           <div style={{ display: "flex", justifyContent: isUser ? "flex-end" : "flex-start" }}>
             <ReactionBar reactions={reactions} messageKey={messageKey} currentUserId={currentUserId} onReact={onReact} />
@@ -233,8 +210,6 @@ export default function AdminSupportPage() {
       setAttachments(res.data.data || []);
     } catch {}
   };
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     fetchTickets();
     const interval = setInterval(fetchTickets, 30000);
@@ -253,8 +228,7 @@ export default function AdminSupportPage() {
       setAttachments([]);
       setReactions({});
     }
-  }, [selectedTicket]); // eslint-disable-line
-
+  }, [selectedTicket]); 
   const handleReply = async (e) => {
     e.preventDefault();
     if (!replyText.trim()) return;
@@ -293,8 +267,6 @@ export default function AdminSupportPage() {
       fetchTickets();
     } catch { showToast("Delete failed", "error"); }
   };
-
-  // ── Emoji react ────────────────────────────────────────────────────────────
   const handleReact = async (messageKey, emoji) => {
     if (!selectedTicket) return;
     try {
@@ -304,12 +276,9 @@ export default function AdminSupportPage() {
         { headers }
       );
       setReactions(res.data.reactions || {});
-      // Also patch the ticket in state so it persists across re-renders
       setSelectedTicket(prev => ({ ...prev, reactions: JSON.stringify(res.data.reactions || {}) }));
     } catch { showToast("Reaction failed", "error"); }
   };
-
-  // ── Delete message ─────────────────────────────────────────────────────────
   const handleDeleteMessage = async (source, index, scope) => {
     setContextMenu(null);
     if (!selectedTicket) return;
@@ -332,8 +301,6 @@ export default function AdminSupportPage() {
     setActiveEmojiPicker(null);
     setContextMenu({ x: e.clientX, y: e.clientY, source, index });
   };
-
-  // ── File Upload ────────────────────────────────────────────────────────────
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -389,16 +356,13 @@ export default function AdminSupportPage() {
             <p className="text-muted mb-0">Reply to employee support requests</p>
           </div>
         </div>
-
         <div className="row g-3">
-          {/* Ticket List */}
           <div className="col-lg-4">
             <div className="card border-0 shadow-sm">
               <div className="card-body p-0">
                 {loading ? <div className="text-center text-muted p-4">Loading...</div>
                   : tickets.length === 0 ? <div className="text-center text-muted p-4">No tickets found.</div>
                   : tickets.map(ticket => {
-                    const sc = STATUS_COLORS[ticket.status] || STATUS_COLORS.open;
                     const isSelected = selectedTicket?.ticket_id === ticket.ticket_id;
                     const convCount = parseJSON(ticket.conversation).length;
                     return (
@@ -410,14 +374,11 @@ export default function AdminSupportPage() {
                             {ticket.user_name || "Unknown"}
                             {ticket.status === "open" && <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#ef4444", display: "inline-block", marginLeft: 6 }} />}
                           </span>
-                          <span style={{ background: sc.bg, color: sc.text, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600 }}>
-                            {ticket.status === "inprogress" ? "In Progress" : ticket.status}
-                          </span>
                         </div>
                         <div style={{ fontSize: 12, color: "#64748b", marginBottom: 3 }} className="text-truncate">{ticket.subject}</div>
                         <div style={{ fontSize: 11, color: "#94a3b8" }}>
                           {new Date(ticket.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })}
-                          {convCount > 0 && <span style={{ color: "#4f46e5", marginLeft: 8 }}>💬 {convCount} {convCount === 1 ? "reply" : "replies"}</span>}
+                          {convCount > 0 && <span style={{ color: "#4f46e5", marginLeft: 8 }}> {convCount} {convCount === 1 ? "reply" : "replies"}</span>}
                         </div>
                       </div>
                     );
@@ -425,20 +386,16 @@ export default function AdminSupportPage() {
               </div>
             </div>
           </div>
-
-          {/* Detail Panel */}
           <div className="col-lg-8">
             {!selectedTicket ? (
               <div className="card border-0 shadow-sm" style={{ minHeight: 400 }}>
                 <div className="card-body d-flex align-items-center justify-content-center">
-                  <div className="text-center text-muted"><div style={{ fontSize: 48, marginBottom: 12 }}>🎫</div><div className="fw-semibold">Select a ticket to view and reply</div></div>
+                 <div className="fw-semibold">Select a ticket to view and reply</div>
                 </div>
               </div>
             ) : (
               <div className="card border-0 shadow-sm">
                 <div className="card-body p-4">
-
-                  {/* Header */}
                   <div className="d-flex justify-content-between align-items-start mb-3">
                     <div>
                       <h6 className="fw-bold mb-1">{selectedTicket.subject}</h6>
@@ -446,25 +403,8 @@ export default function AdminSupportPage() {
                     </div>
                     <button className="btn btn-sm" style={{ background: "#fff1f2", color: "#ef4444", fontWeight: 500 }} onClick={() => handleDeleteTicket(selectedTicket.ticket_id)}>Delete Ticket</button>
                   </div>
-
-                  {/* Status */}
-                  <div className="d-flex align-items-center gap-2 mb-3 flex-wrap">
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#374151" }}>Status:</span>
-                    {["open", "inprogress", "resolved", "closed"].map(s => {
-                      const sc = STATUS_COLORS[s];
-                      const isActive = selectedTicket.status === s;
-                      return (
-                        <button key={s} onClick={() => handleStatusChange(selectedTicket.ticket_id, s)}
-                          style={{ background: isActive ? sc.bg : "#f1f5f9", color: isActive ? sc.text : "#64748b", border: isActive ? `1px solid ${sc.text}` : "1px solid #e2e8f0", borderRadius: 20, padding: "3px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                          {s === "inprogress" ? "In Progress" : s.charAt(0).toUpperCase() + s.slice(1)}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Conversation */}
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 4 }}>Full Conversation</div>
-                  <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>Hover a message to react 😊 or delete it.</div>
+                  <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>Hover a message to react or delete it.</div>
 
                   <div style={{ background: "#f8fafc", borderRadius: 10, padding: 12, maxHeight: 300, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10, marginBottom: 16 }}
                     onClick={e => e.stopPropagation()}>
@@ -514,12 +454,10 @@ export default function AdminSupportPage() {
                     )}
                     <div ref={conversationEndRef} />
                   </div>
-
-                  {/* Attachments */}
                   <div style={{ marginBottom: 16 }}>
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <div style={{ fontSize: 13, fontWeight: 600, color: "#374151" }}>
-                        📎 Attachments {attachments.length > 0 && <span style={{ color: "#4f46e5" }}>({attachments.length})</span>}
+                        Attachments {attachments.length > 0 && <span style={{ color: "#4f46e5" }}>({attachments.length})</span>}
                       </div>
                       <div>
                         <input ref={fileInputRef} type="file" style={{ display: "none" }} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onChange={handleFileSelect} />
@@ -531,7 +469,7 @@ export default function AdminSupportPage() {
                     {selectedFile && (
                       <div style={{ background: "#f0f4ff", borderRadius: 8, padding: "8px 12px", marginBottom: 8, display: "flex", alignItems: "center", gap: 8, border: "1px solid #e0e7ff" }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📎 {selectedFile.name}</div>
+                          <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}> {selectedFile.name}</div>
                           <div style={{ fontSize: 10, color: "#64748b" }}>{formatFileSize(selectedFile.size)}</div>
                         </div>
                         <button onClick={uploadFile} disabled={uploading} className="btn btn-sm btn-primary" style={{ fontSize: 12, flexShrink: 0 }}>{uploading ? "Uploading..." : "Upload"}</button>
@@ -554,8 +492,6 @@ export default function AdminSupportPage() {
                       </div>
                     ) : <div style={{ fontSize: 12, color: "#94a3b8", padding: "8px 0" }}>No attachments yet.</div>}
                   </div>
-
-                  {/* Reply Form */}
                   <div style={{ fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 8 }}>Send Reply</div>
                   <form onSubmit={handleReply}>
                     <textarea className="form-control mb-2" rows={3} placeholder="Type your reply to the employee..." value={replyText} onChange={e => setReplyText(e.target.value)} style={{ fontSize: 13, resize: "none" }} />

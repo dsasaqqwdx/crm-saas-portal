@@ -6,12 +6,12 @@ const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const NotificationContext = createContext(null);
 
 const TYPE_ICONS = {
-  new_ticket:       "🎫",
-  admin_reply:      "💬",
-  employee_message: "✉️",
-  file_uploaded:    "📎",
-  reaction_added:   "😊",
-  message_deleted:  "🗑️",
+  new_ticket:       "",
+  admin_reply:      "",
+  employee_message: "",
+  file_uploaded:    "",
+  reaction_added:   "",
+  message_deleted:  "",
 };
 
 const TYPE_COLORS = {
@@ -65,8 +65,6 @@ export function NotificationProvider({ children }) {
       const newCount = countRes.data.count || 0;
 
       setNotifications(newNotifs);
-
-      // Show toast only for genuinely new notifications (not on first load)
       if (lastCountRef.current >= 0 && newCount > lastCountRef.current) {
         const diff = newCount - lastCountRef.current;
         const newOnes = newNotifs.filter(n => !n.is_read).slice(0, diff);
@@ -75,17 +73,14 @@ export function NotificationProvider({ children }) {
       lastCountRef.current = newCount;
       setUnreadCount(newCount);
     } catch (err) {
-      // Not logged in or network error — silent fail
     }
-  }, []); // eslint-disable-line
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
-
-  // Close dropdown on outside click
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target))
@@ -137,8 +132,6 @@ export function NotificationProvider({ children }) {
       TYPE_ICONS, TYPE_COLORS, TYPE_LABELS, formatTime,
     }}>
       {children}
-
-      {/* ── TOAST STACK (top-right, WhatsApp style) ──────────────────────── */}
       <div style={{
         position: "fixed", top: 16, right: 16, zIndex: 99999,
         display: "flex", flexDirection: "column", gap: 10,
@@ -191,8 +184,6 @@ export function NotificationProvider({ children }) {
 export function useNotifications() {
   return useContext(NotificationContext);
 }
-
-// ── BELL ICON COMPONENT ────────────────────────────────────────────────────
 export function NotificationBell() {
   const ctx = useNotifications();
   if (!ctx) return null;
@@ -203,7 +194,6 @@ export function NotificationBell() {
 
   return (
     <div ref={dropdownRef} style={{ position: "relative" }}>
-      {/* Bell button */}
       <button
         onClick={() => setDropdownOpen(prev => !prev)}
         style={{
@@ -232,10 +222,7 @@ export function NotificationBell() {
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
-      </button>
-
-      {/* Dropdown */}
-      {dropdownOpen && (
+      </button> {dropdownOpen && (
         <div style={{
           position: "fixed", left: 258, top: "auto",
           width: 340, background: "#fff",
@@ -243,7 +230,6 @@ export function NotificationBell() {
           zIndex: 99998, overflow: "hidden",
           animation: "bellFadeIn 0.18s ease",
         }}>
-          {/* Header */}
           <div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
               Notifications
@@ -264,8 +250,6 @@ export function NotificationBell() {
               )}
             </div>
           </div>
-
-          {/* List */}
           <div style={{ maxHeight: 400, overflowY: "auto" }}>
             {notifications.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 16px", color: "#94a3b8" }}>

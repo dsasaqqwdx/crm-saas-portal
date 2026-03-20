@@ -5,10 +5,8 @@ import {
   Paperclip, Download, FileText, Image, History,
   Plus, ChevronLeft, Clock, MessageSquare, Loader, Trash2
 } from "lucide-react";
-
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const EMOJI_LIST = ["👍", "👎", "❤️", "😂", "😮", "😢", "🔥", "✅"];
-
 const QA_DATABASE = [
   { keywords: ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "howdy"], answer: " Hello! Welcome to Shnoor chatbot. How can I help you today? I am able to help u with questions related to  company policies, leave, attendance, or technical support." },
   { keywords: ["bye", "goodbye", "see you", "take care", "thanks bye", "thank you bye"], answer: "Goodbye! Have a great day! Feel free to come back anytime you need help. " },
@@ -36,12 +34,10 @@ const WELCOME_MSG = {
   content: " Hi! I'm your Shnoor Chatbot. I can answer questions about **company policies, leave, attendance, and payroll**.\n\nWhat would you like to know?",
   timestamp: new Date().toISOString(),
 };
-
 const getToken    = () => localStorage.getItem("token");
 const getUserId   = () => localStorage.getItem("user_id") || null;
 const getUserName = () => localStorage.getItem("name") || "User";
 const getHeaders  = () => ({ "x-auth-token": getToken() });
-
 const safeParseArray = (raw) => {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
@@ -111,7 +107,6 @@ const dotStyle = (delay) => ({
 const STATUS_COLOR = { open: "#22c55e", inprogress: "#f59e0b", closed: "#94a3b8" };
 const STATUS_LABEL = { open: "Open", inprogress: "In Progress", closed: "Closed" };
 
-// ── Emoji Picker ──────────────────────────────────────────────────────────────
 function EmojiPicker({ onSelect, onClose }) {
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onClose(); };
@@ -135,8 +130,6 @@ function EmojiPicker({ onSelect, onClose }) {
     </div>
   );
 }
-
-// ── Reaction Bar ──────────────────────────────────────────────────────────────
 function ReactionBar({ reactions, messageKey, currentUserId, onReact }) {
   if (!reactions || !reactions[messageKey]) return null;
   const msgReactions = reactions[messageKey];
@@ -165,8 +158,6 @@ function ReactionBar({ reactions, messageKey, currentUserId, onReact }) {
     </div>
   );
 }
-
-// ── Context Menu ──────────────────────────────────────────────────────────────
 function MessageContextMenu({ x, y, canDeleteForEveryone, onDeleteForMe, onDeleteForEveryone, onClose }) {
   useEffect(() => {
     const h = () => onClose();
@@ -319,7 +310,6 @@ export default function ChatbotWidget() {
         setTickets(sorted);
         const ticket = sorted.find(t => t.ticket_id === activeTicketId);
         if (!ticket) return;
-        // Sync reactions
         setReactions(safeParseObj(ticket.reactions));
         const conv = safeParseArray(ticket.conversation);
         if (conv.length > seenReplyCount) {
@@ -374,8 +364,6 @@ export default function ChatbotWidget() {
     setContextMenu(null);
     setEmojiPicker(null);
   };
-
-  // ── React with emoji ────────────────────────────────────────────────────────
   const handleReact = async (messageKey, emoji) => {
     if (!activeTicketId) return;
     try {
@@ -387,8 +375,6 @@ export default function ChatbotWidget() {
       setReactions(res.data.reactions || {});
     } catch (err) { console.error("React failed:", err); }
   };
-
-  // ── Delete message ──────────────────────────────────────────────────────────
   const handleDeleteMessage = async (msgIdx, scope) => {
     setContextMenu(null);
     const msg = messages[msgIdx];
@@ -402,7 +388,6 @@ export default function ChatbotWidget() {
         data: { messageIndex: msg._index, messageSource: msg._source, scope },
       });
       setMessages(prev => prev.filter((_, i) => i !== msgIdx));
-      // Re-fetch reactions if deleted for everyone (indices shifted)
       if (scope === "everyone") {
         const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
         const t = (res.data.data || []).find(t => t.ticket_id === activeTicketId);
@@ -435,7 +420,7 @@ export default function ChatbotWidget() {
       formData.append("file", selectedFile);
       const res = await axios.post(`${API}/api/attachments/${activeTicketId}`, formData, { headers: { ...getHeaders(), "Content-Type": "multipart/form-data" } });
       setAttachments(prev => [...prev, res.data.data]);
-      addMessage("user", `Sent file: **${selectedFile.name}** (${formatFileSize(selectedFile.size)})`);
+ addMessage("user", `Sent file: **${selectedFile.name}** (${formatFileSize(selectedFile.size)})`);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) { addMessage("assistant", `Upload failed: ${err.response?.data?.message || "Please try again."}`); }
@@ -465,14 +450,14 @@ export default function ChatbotWidget() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514", max_tokens: 500,
+   model: "claude-sonnet-4-20250514", max_tokens: 500,
           system: "You are a chatbot for Shnoor International. Answer only HR-related questions about company policies, leave, attendance, payroll, and technical support. If asked something unrelated to HR, say you cannot help with that topic and suggest contacting support. Be concise and friendly.",
           messages: history.filter(m => m.role === "user" || m.role === "assistant").map(m => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await response.json();
       const aiReply = data.content?.[0]?.text || "I'm not sure about that. Please contact support for help.";
-      addMessage("assistant", aiReply);
+ addMessage("assistant", aiReply);
       const uncertain = ["not sure", "don't know", "cannot answer", "contact support", "unable to", "i'm sorry", "outside my"];
       if (uncertain.some(p => aiReply.toLowerCase().includes(p))) setTimeout(() => setShowContactOption(true), 500);
     } catch {
@@ -485,12 +470,12 @@ export default function ChatbotWidget() {
     setEscalating(true); setShowContactOption(false);
     try {
       const chatHistory = messages.map(m => ({ role: m.role === "admin" ? "assistant" : m.role, content: m.content, timestamp: m.timestamp }));
-      const res = await axios.post(`${API}/api/support`, { subject: `Support Request from ${getUserName()}`, messages: chatHistory }, { headers: getHeaders() });
+const res = await axios.post(`${API}/api/support`, { subject: `Support Request from ${getUserName()}`, messages: chatHistory }, { headers: getHeaders() });
       const newTicketId = res.data.data?.ticket_id;
       setActiveTicketId(newTicketId);
       setSeenReplyCount(0);
       fetchTickets();
-      addMessage("assistant", `Ticket created and sent to the admin team.\n\nI'll notify you here when they reply. You can also click **"Check Reply"** anytime.\n\n📎 You can now attach files using the paperclip icon below.`);
+      addMessage("assistant", `Msg created and sent to the admin team.\n\nI'll notify you here when they reply. You can also click **"Check Reply"** anytime.\n\nYou can now attach files .`);
     } catch { addMessage("assistant", "There was an issue creating your support ticket. Please try again."); }
     finally { setEscalating(false); }
   };
@@ -504,10 +489,9 @@ export default function ChatbotWidget() {
       if (!ticket) { addMessage("assistant", "Couldn't find your ticket. Please try again."); return; }
       setReactions(safeParseObj(ticket.reactions));
       const conv = safeParseArray(ticket.conversation);
-      if (conv.length === 0) { addMessage("assistant", "No reply yet. The admin will get back to you soon."); return; }
+ if (conv.length === 0) { addMessage("assistant", "No reply yet. The admin will get back to you soon."); return; }
       if (conv.length > seenReplyCount) {
-        const newOnes = conv.slice(seenReplyCount);
-        setSeenReplyCount(conv.length);
+        const newOnes = conv.slice(seenReplyCount);    setSeenReplyCount(conv.length);
         newOnes.forEach((r, i) => addMessage("admin", ` **${r.sender || "Admin"} replied:** ${r.content}`, { _source: "conversation", _index: seenReplyCount + i }));
       } else {
         addMessage("assistant", "All admin replies are shown above. Is there anything else I can help with?");
@@ -515,9 +499,7 @@ export default function ChatbotWidget() {
     } catch { addMessage("assistant", "Couldn't check for replies right now. Please try again."); }
     finally { setCheckingReply(false); }
   };
-
   const handleKeyDown = (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } };
-
   const getBubbleStyle = (role) => {
     if (role === "user")  return { bg: "linear-gradient(135deg, #4f46e5, #7c3aed)", color: "#fff",    radius: "16px 16px 4px 16px",  align: "flex-end" };
     if (role === "admin") return { bg: "#e0e7ff",                                   color: "#1e293b", radius: "16px 16px 16px 4px",  align: "flex-start", border: "1px solid #c7d2fe" };
@@ -529,12 +511,11 @@ export default function ChatbotWidget() {
 
   return (
     <>
-      {/* FAB */}
       <div onClick={() => setIsOpen(!isOpen)}
         style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 20px rgba(79,70,229,0.5)", transition: "transform 0.2s" }}
         onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"}
         onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
-        {isOpen ? <X size={22} color="#fff" /> : <MessageCircle size={22} color="#fff" />}
+  {isOpen ? <X size={22} color="#fff" /> : <MessageCircle size={22} color="#fff" />}
         {!isOpen && unreadCount > 0 && (
           <div style={{ position: "absolute", top: -4, right: -4, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 20, height: 20, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</div>
         )}
@@ -543,33 +524,28 @@ export default function ChatbotWidget() {
       {isOpen && (
         <div style={{ position: "fixed", bottom: 96, right: 28, zIndex: 9998, width: 375, height: 590, borderRadius: 16, background: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'Segoe UI', sans-serif", animation: "slideUp 0.2s ease" }}>
           {showHistory && <HistoryPanel tickets={tickets} activeTicketId={activeTicketId} onSelect={loadTicket} onNew={startNewChat} onClose={() => setShowHistory(false)} loading={ticketsLoading} />}
-
-          {/* Header */}
-          <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "14px 18px", color: "#fff" }}>
+       <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "14px 18px", color: "#fff" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 36, height: 36, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, flexShrink: 0 }}>S</div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+       <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 700, fontSize: 15 }}>SHNOOR Chatbot</div>
-                <div style={{ fontSize: 11, opacity: 0.85, display: "flex", alignItems: "center", gap: 4 }}>
+         <div style={{ fontSize: 11, opacity: 0.85, display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#4ade80", display: "inline-block" }} />
                   Queries + Admin Support
                 </div>
               </div>
               <button onClick={() => setShowHistory(true)} style={hdrBtn}><History size={12} /> History</button>
-              <button onClick={startNewChat} title="New chat" style={hdrBtn}><Plus size={13} /></button>
+       <button onClick={startNewChat} title="New chat" style={hdrBtn}><Plus size={13} /></button>
               {activeTicketId && <button onClick={checkForReply} disabled={checkingReply} style={hdrBtn}><RefreshCw size={11} /> {checkingReply ? "…" : "Check"}</button>}
-            </div>
+ </div>
             {activeTicket && (
-              <div style={{ marginTop: 8, padding: "5px 10px", background: "rgba(255,255,255,0.12)", borderRadius: 8, fontSize: 11, color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: 6 }}>
+        <div style={{ marginTop: 8, padding: "5px 10px", background: "rgba(255,255,255,0.12)", borderRadius: 8, fontSize: 11, color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: 6 }}>
                 <MessageSquare size={11} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>#{activeTicketId} · {activeTicket.subject}</span>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>#{activeTicketId} · {activeTicket.subject}</span>
                 <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 10, background: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>{STATUS_LABEL[activeTicket.status] || activeTicket.status}</span>
               </div>
             )}
-          </div>
-
-          {/* Messages */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 10 }}
+          </div><div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 10 }}
             onClick={() => { setContextMenu(null); setEmojiPicker(null); }}>
             {messages.map((msg, idx) => {
               const style = getBubbleStyle(msg.role);
@@ -581,8 +557,6 @@ export default function ChatbotWidget() {
               return (
                 <div key={idx} style={{ display: "flex", justifyContent: style.align }}>
                   <div style={{ maxWidth: "85%", position: "relative" }}>
-
-                    {/* Action buttons row — shown on hover via CSS class trick */}
                     <div
                       className={`msg-actions-${idx}`}
                       style={{
@@ -611,8 +585,6 @@ export default function ChatbotWidget() {
                         ><Trash2 size={11} color="#94a3b8" /></button>
                       )}
                     </div>
-
-                    {/* Emoji picker */}
                     {emojiPicker === idx && (
                       <div style={{ position: "absolute", [style.align === "flex-end" ? "right" : "left"]: 0, bottom: "calc(100% + 6px)", zIndex: 9999 }}
                         onClick={e => e.stopPropagation()}>
@@ -622,8 +594,6 @@ export default function ChatbotWidget() {
                         />
                       </div>
                     )}
-
-                    {/* Bubble */}
                     <div
                       style={{ padding: "10px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none", cursor: "default" }}
                       dangerouslySetInnerHTML={{ __html: renderContent(msg.content) }}
@@ -637,13 +607,9 @@ export default function ChatbotWidget() {
                         if (el && emojiPicker !== idx) el.style.opacity = "0";
                       }}
                     />
-
-                    {/* Timestamp */}
                     <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3, textAlign: style.align === "flex-end" ? "right" : "left" }}>
                       {msg.role === "admin" ? "Admin • " : ""}{fmt(msg.timestamp)}
                     </div>
-
-                    {/* Reaction bar */}
                     {msgKey && (
                       <div style={{ display: "flex", justifyContent: style.align }}>
                         <ReactionBar reactions={reactions} messageKey={msgKey} currentUserId={currentUserId} onReact={handleReact} />
@@ -653,8 +619,6 @@ export default function ChatbotWidget() {
                 </div>
               );
             })}
-
-            {/* Attachments */}
             {attachments.length > 0 && (
               <div style={{ background: "#f8fafc", borderRadius: 10, padding: 10, border: "1px solid #e2e8f0" }}>
                 <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Attachments ({attachments.length})</div>
@@ -687,7 +651,7 @@ export default function ChatbotWidget() {
                 <div style={{ fontSize: 13, color: "#92400e", fontWeight: 600, marginBottom: 8 }}>Would you like to contact our support team?</div>
                 <div style={{ display: "flex", gap: 8 }}>
                   <button onClick={handleEscalate} disabled={escalating} style={{ flex: 1, padding: "7px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                    {escalating ? "Creating..." : "✅ Yes, Contact Support"}
+                    {escalating ? "Creating..." : "Yes, Contact Support"}
                   </button>
                   <button onClick={() => setShowContactOption(false)} style={{ padding: "7px 12px", background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>No Thanks</button>
                 </div>

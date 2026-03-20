@@ -75,7 +75,10 @@ const Sidebar = () => {
       className="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white shadow"
       style={{ width: "250px", height: "100vh", position: "fixed", zIndex: 1000 }}
     >
-      
+   <div className="px-2 pt-2 pb-1 d-flex align-items-center justify-content-between">
+    <span style={{ fontSize: "0.75rem", color: "#6c757d" }}>Notifications</span>
+    <NotificationBell />
+  </div>    
       <div className="d-flex align-items-center mb-4 border-bottom border-secondary pb-3">
         <div
           className="bg-primary text-white d-flex align-items-center justify-content-center rounded fw-bold"
@@ -105,12 +108,7 @@ const Sidebar = () => {
             </li>
           );
         })}
-      </ul>
- <div className="px-2 pt-2 pb-1 d-flex align-items-center justify-content-between">
-    <span style={{ fontSize: "0.75rem", color: "#6c757d" }}>Notifications</span>
-    <NotificationBell />
-  </div>
-      
+      </ul>  
       <div className="mt-auto pt-3 px-2 border-top border-secondary">
         <div className="small text-muted mb-0" style={{ fontSize: '0.75rem' }}>Account</div>
         <div className="fw-semibold text-truncate mb-3" style={{ fontSize: '0.9rem' }}>
