@@ -5,7 +5,10 @@ import {
   Paperclip, Download, FileText, Image, History,
   Plus, ChevronLeft, Clock, MessageSquare, Loader, Trash2
 } from "lucide-react";
+
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
+const EMOJI_LIST = ["👍", "👎", "❤️", "😂", "😮", "😢", "🔥", "✅"];
+
 const QA_DATABASE = [
   { keywords: ["hi", "hello", "hey", "good morning", "good afternoon", "good evening", "howdy"], answer: " Hello! Welcome to Shnoor chatbot. How can I help you today? I am able to help u with questions related to  company policies, leave, attendance, or technical support." },
   { keywords: ["bye", "goodbye", "see you", "take care", "thanks bye", "thank you bye"], answer: "Goodbye! Have a great day! Feel free to come back anytime you need help. " },
@@ -33,35 +36,44 @@ const WELCOME_MSG = {
   content: " Hi! I'm your Shnoor Chatbot. I can answer questions about **company policies, leave, attendance, and payroll**.\n\nWhat would you like to know?",
   timestamp: new Date().toISOString(),
 };
-const getToken   = () => localStorage.getItem("token");
-const getUserId  = () => localStorage.getItem("user_id") || null;
+
+const getToken    = () => localStorage.getItem("token");
+const getUserId   = () => localStorage.getItem("user_id") || null;
 const getUserName = () => localStorage.getItem("name") || "User";
-const getHeaders = () => ({ "x-auth-token": getToken() });
+const getHeaders  = () => ({ "x-auth-token": getToken() });
+
 const safeParseArray = (raw) => {
   if (!raw) return [];
   if (Array.isArray(raw)) return raw;
   try { return JSON.parse(raw); } catch { return []; }
 };
+const safeParseObj = (raw) => {
+  if (!raw) return {};
+  if (typeof raw === "object" && !Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return {}; }
+};
 
 const buildThread = (ticket, currentUserId) => {
   const initial = safeParseArray(ticket.messages)
+    .map((m, idx) => ({ ...m, _source: "messages", _index: idx }))
     .filter(m => !(m.deletedFor || []).includes(currentUserId))
-    .map((m, idx) => ({
+    .map(m => ({
       role: m.role === "admin" ? "admin" : m.role === "assistant" ? "assistant" : "user",
       content: String(m.content || ""),
       timestamp: m.timestamp || ticket.created_at,
-      _source: "messages",
-      _index: idx,
+      _source: m._source,
+      _index: m._index,
     }));
 
   const conv = safeParseArray(ticket.conversation)
+    .map((c, idx) => ({ ...c, _source: "conversation", _index: idx }))
     .filter(c => !(c.deletedFor || []).includes(currentUserId))
-    .map((c, idx) => ({
+    .map(c => ({
       role: "admin",
       content: ` **${c.sender || "Admin"} replied:** ${c.content}`,
       timestamp: c.timestamp || ticket.updated_at,
-      _source: "conversation",
-      _index: idx,
+      _source: c._source,
+      _index: c._index,
     }));
 
   return [...initial, ...conv];
@@ -70,37 +82,28 @@ const buildThread = (ticket, currentUserId) => {
 const findPredefinedAnswer = (text) => {
   const lower = text.toLowerCase().trim();
   for (const qa of QA_DATABASE) {
-    if (qa.keywords.some((k) => lower.includes(k))) return qa.answer;
+    if (qa.keywords.some(k => lower.includes(k))) return qa.answer;
   }
   return null;
 };
-
-const isOutOfScope = (text) =>
-  OUT_OF_SCOPE_KEYWORDS.some((k) => text.toLowerCase().includes(k));
-
+const isOutOfScope = (text) => OUT_OF_SCOPE_KEYWORDS.some(k => text.toLowerCase().includes(k));
 const formatFileSize = (bytes) => {
   if (!bytes) return "";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
-
 const isImageType = (ft) => ft && ft.startsWith("image/");
-const fmt = (iso) =>
-  new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+const fmt = (iso) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 const fmtDate = (iso) => {
-  const d = new Date(iso);
-  const today = new Date();
-  const yesterday = new Date(today);
+  const d = new Date(iso), today = new Date(), yesterday = new Date(today);
   yesterday.setDate(today.getDate() - 1);
   if (d.toDateString() === today.toDateString()) return "Today";
   if (d.toDateString() === yesterday.toDateString()) return "Yesterday";
   return d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 };
 const renderContent = (content) =>
-  String(content)
-    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\n/g, "<br/>");
+  String(content).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>").replace(/\n/g, "<br/>");
 const dotStyle = (delay) => ({
   width: 7, height: 7, borderRadius: "50%", background: "#94a3b8",
   display: "inline-block", animation: `bounce 1.2s ${delay}s infinite`,
@@ -108,38 +111,80 @@ const dotStyle = (delay) => ({
 const STATUS_COLOR = { open: "#22c55e", inprogress: "#f59e0b", closed: "#94a3b8" };
 const STATUS_LABEL = { open: "Open", inprogress: "In Progress", closed: "Closed" };
 
+// ── Emoji Picker ──────────────────────────────────────────────────────────────
+function EmojiPicker({ onSelect, onClose }) {
+  useEffect(() => {
+    const h = (e) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, [onClose]);
+  return (
+    <div style={{
+      position: "absolute", zIndex: 9999, bottom: "calc(100% + 6px)",
+      background: "#fff", border: "1px solid #e2e8f0", borderRadius: 12,
+      boxShadow: "0 4px 20px rgba(0,0,0,0.15)", padding: "6px 8px",
+      display: "flex", gap: 2,
+    }}>
+      {EMOJI_LIST.map(e => (
+        <button key={e} onClick={() => { onSelect(e); onClose(); }}
+          style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 18, padding: "4px 5px", borderRadius: 8, lineHeight: 1, transition: "background 0.1s" }}
+          onMouseEnter={ev => ev.currentTarget.style.background = "#f1f5f9"}
+          onMouseLeave={ev => ev.currentTarget.style.background = "transparent"}
+        >{e}</button>
+      ))}
+    </div>
+  );
+}
+
+// ── Reaction Bar ──────────────────────────────────────────────────────────────
+function ReactionBar({ reactions, messageKey, currentUserId, onReact }) {
+  if (!reactions || !reactions[messageKey]) return null;
+  const msgReactions = reactions[messageKey];
+  return (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 3, marginTop: 4 }}>
+      {Object.entries(msgReactions).map(([emoji, userIds]) => {
+        if (!userIds.length) return null;
+        const mine = userIds.includes(currentUserId);
+        return (
+          <button key={emoji} onClick={() => onReact(messageKey, emoji)}
+            style={{
+              background: mine ? "#e0e7ff" : "#f1f5f9",
+              border: mine ? "1px solid #a5b4fc" : "1px solid #e2e8f0",
+              borderRadius: 20, padding: "2px 7px", cursor: "pointer",
+              fontSize: 12, display: "flex", alignItems: "center", gap: 3,
+              transition: "all 0.15s",
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = mine ? "#c7d2fe" : "#e2e8f0"}
+            onMouseLeave={e => e.currentTarget.style.background = mine ? "#e0e7ff" : "#f1f5f9"}
+          >
+            <span style={{ fontSize: 13 }}>{emoji}</span>
+            <span style={{ color: mine ? "#4f46e5" : "#64748b", fontWeight: mine ? 700 : 500 }}>{userIds.length}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Context Menu ──────────────────────────────────────────────────────────────
 function MessageContextMenu({ x, y, canDeleteForEveryone, onDeleteForMe, onDeleteForEveryone, onClose }) {
   useEffect(() => {
-    const handler = () => onClose();
-    document.addEventListener("click", handler);
-    return () => document.removeEventListener("click", handler);
+    const h = () => onClose();
+    document.addEventListener("click", h);
+    return () => document.removeEventListener("click", h);
   }, [onClose]);
-
   return (
-    <div
-      style={{
-        position: "fixed", top: y, left: x, zIndex: 99999,
-        background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10,
-        boxShadow: "0 4px 20px rgba(0,0,0,0.15)", minWidth: 180, overflow: "hidden",
-      }}
-      onClick={e => e.stopPropagation()}
-    >
-      <button
-        onClick={onDeleteForMe}
-        style={ctxBtnStyle}
+    <div style={{ position: "fixed", top: y, left: x, zIndex: 99999, background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", minWidth: 180, overflow: "hidden" }}
+      onClick={e => e.stopPropagation()}>
+      <button onClick={onDeleteForMe} style={ctxBtnStyle}
         onMouseEnter={e => e.currentTarget.style.background = "#f1f5f9"}
-        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-      >
+        onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
         <Trash2 size={13} color="#64748b" /> Delete for me
       </button>
       {canDeleteForEveryone && (
-        <button
-          onClick={onDeleteForEveryone}
-          style={{ ...ctxBtnStyle, color: "#ef4444", borderTop: "1px solid #f1f5f9" }}
+        <button onClick={onDeleteForEveryone} style={{ ...ctxBtnStyle, color: "#ef4444", borderTop: "1px solid #f1f5f9" }}
           onMouseEnter={e => e.currentTarget.style.background = "#fff1f2"}
-          onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-        >
+          onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
           <Trash2 size={13} color="#ef4444" /> Delete for everyone
         </button>
       )}
@@ -154,7 +199,7 @@ const ctxBtnStyle = {
 
 function HistoryPanel({ tickets, activeTicketId, onSelect, onNew, onClose, loading }) {
   const grouped = {};
-  tickets.forEach((t) => {
+  tickets.forEach(t => {
     const label = fmtDate(t.created_at);
     if (!grouped[label]) grouped[label] = [];
     grouped[label].push(t);
@@ -162,40 +207,28 @@ function HistoryPanel({ tickets, activeTicketId, onSelect, onNew, onClose, loadi
   return (
     <div style={{ position: "absolute", inset: 0, zIndex: 10, background: "#fff", display: "flex", flexDirection: "column", borderRadius: 16, overflow: "hidden" }}>
       <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
-        <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#fff", display: "flex", padding: 4 }}>
-          <ChevronLeft size={18} />
-        </button>
+        <button onClick={onClose} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#fff", display: "flex", padding: 4 }}><ChevronLeft size={18} /></button>
         <span style={{ color: "#fff", fontWeight: 700, fontSize: 15, flex: 1 }}>Chat History</span>
         <button onClick={onNew} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: "5px 10px", color: "#fff", fontSize: 12, fontWeight: 600, cursor: "pointer", display: "flex", alignItems: "center", gap: 5 }}>
           <Plus size={13} /> New Chat
         </button>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 0" }}>
-        {loading && (
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 32, gap: 8, color: "#94a3b8", fontSize: 13 }}>
-            <Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> Loading history…
-          </div>
-        )}
-        {!loading && tickets.length === 0 && (
-          <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: 32 }}>
-            No chat history yet.<br />Start a new conversation!
-          </div>
-        )}
+        {loading && <div style={{ display: "flex", justifyContent: "center", alignItems: "center", padding: 32, gap: 8, color: "#94a3b8", fontSize: 13 }}><Loader size={14} style={{ animation: "spin 1s linear infinite" }} /> Loading history…</div>}
+        {!loading && tickets.length === 0 && <div style={{ textAlign: "center", color: "#94a3b8", fontSize: 13, padding: 32 }}>No chat history yet.<br />Start a new conversation!</div>}
         {!loading && Object.entries(grouped).map(([label, group]) => (
           <div key={label}>
             <div style={{ fontSize: 10, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.08em", textTransform: "uppercase", padding: "10px 16px 4px" }}>{label}</div>
-            {group.map((t) => {
+            {group.map(t => {
               const isActive = t.ticket_id === activeTicketId;
               return (
                 <div key={t.ticket_id} onClick={() => onSelect(t)}
                   style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 16px", cursor: "pointer", background: isActive ? "#ede9fe" : "transparent", borderLeft: isActive ? "3px solid #7c3aed" : "3px solid transparent", transition: "background 0.15s" }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = "#f8fafc"; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "#f8fafc"; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "transparent"; }}>
                   <MessageSquare size={15} color={isActive ? "#7c3aed" : "#94a3b8"} style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? "#4f46e5" : "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {t.subject}
-                    </div>
+                    <div style={{ fontSize: 13, fontWeight: isActive ? 600 : 500, color: isActive ? "#4f46e5" : "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{t.subject}</div>
                     <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
                       <Clock size={9} /> {fmt(t.created_at)}
                       <span style={{ marginLeft: 4, padding: "1px 6px", borderRadius: 10, fontSize: 9, fontWeight: 700, background: (STATUS_COLOR[t.status] || "#94a3b8") + "20", color: STATUS_COLOR[t.status] || "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
@@ -216,45 +249,37 @@ function HistoryPanel({ tickets, activeTicketId, onSelect, onNew, onClose, loadi
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen]           = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [tickets, setTickets]           = useState([]);
+  const [tickets, setTickets]         = useState([]);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [activeTicketId, setActiveTicketId] = useState(null);
-  const [messages, setMessages]         = useState([WELCOME_MSG]);
+  const [messages, setMessages]       = useState([WELCOME_MSG]);
+  const [reactions, setReactions]     = useState({});
   const [seenReplyCount, setSeenReplyCount] = useState(0);
-  const [input, setInput]                   = useState("");
-  const [loading, setLoading]               = useState(false);
-  const [showQuestions, setShowQuestions]   = useState(true);
+  const [input, setInput]             = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [showQuestions, setShowQuestions] = useState(true);
   const [showContactOption, setShowContactOption] = useState(false);
-  const [escalating, setEscalating]         = useState(false);
-  const [checkingReply, setCheckingReply]   = useState(false);
-  const [unreadCount, setUnreadCount]       = useState(0);
-  const [attachments, setAttachments]       = useState([]);
-  const [selectedFile, setSelectedFile]     = useState(null);
-  const [uploading, setUploading]           = useState(false);
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState(null); // { x, y, msgIdx }
+  const [escalating, setEscalating]   = useState(false);
+  const [checkingReply, setCheckingReply] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [attachments, setAttachments] = useState([]);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading]     = useState(false);
+  const [contextMenu, setContextMenu] = useState(null);
+  const [emojiPicker, setEmojiPicker] = useState(null); // msgIdx showing picker
+
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
   const fileInputRef   = useRef(null);
-
-  const currentUserId = getUserId();
-  // Employee is NOT admin — "delete for everyone" only available for admin-role messages if user is admin
-  // For chatbot widget (employee side), "delete for everyone" only if the message is theirs (user role)
-  // We show "delete for everyone" only if message role is "user" (employee's own message) AND ticket exists
-  const canDeleteForEveryone = (msg) => msg.role === "user" && !!activeTicketId;
+  const currentUserId  = getUserId();
 
   const fetchTickets = useCallback(async () => {
     try {
       const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
-      const sorted = (res.data.data || []).sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
-      );
+      const sorted = (res.data.data || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setTickets(sorted);
       return sorted;
-    } catch (err) {
-      console.error("fetchTickets error:", err);
-      return [];
-    }
+    } catch { return []; }
   }, []);
 
   useEffect(() => {
@@ -269,13 +294,8 @@ export default function ChatbotWidget() {
     return () => clearInterval(iv);
   }, [isOpen, fetchTickets]);
 
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (isOpen) { setUnreadCount(0); setTimeout(() => inputRef.current?.focus(), 100); }
-  }, [isOpen]);
+  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  useEffect(() => { if (isOpen) { setUnreadCount(0); setTimeout(() => inputRef.current?.focus(), 100); } }, [isOpen]);
 
   useEffect(() => {
     if (!activeTicketId) { setAttachments([]); return; }
@@ -295,26 +315,20 @@ export default function ChatbotWidget() {
     const iv = setInterval(async () => {
       try {
         const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
-        const sorted = (res.data.data || []).sort(
-          (a, b) => new Date(b.created_at) - new Date(a.created_at)
-        );
+        const sorted = (res.data.data || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         setTickets(sorted);
-        const ticket = sorted.find((t) => t.ticket_id === activeTicketId);
+        const ticket = sorted.find(t => t.ticket_id === activeTicketId);
         if (!ticket) return;
+        // Sync reactions
+        setReactions(safeParseObj(ticket.reactions));
         const conv = safeParseArray(ticket.conversation);
         if (conv.length > seenReplyCount) {
           const newOnes = conv.slice(seenReplyCount);
           setSeenReplyCount(conv.length);
-          newOnes.forEach((r) => {
-            const msg = {
-              role: "admin",
-              content: ` **${r.sender || "Admin"} replied:** ${r.content}`,
-              timestamp: r.timestamp || new Date().toISOString(),
-              _source: "conversation",
-              _index: seenReplyCount,
-            };
-            setMessages((prev) => [...prev, msg]);
-            if (!isOpen) setUnreadCount((p) => p + 1);
+          newOnes.forEach((r, i) => {
+            const msg = { role: "admin", content: ` **${r.sender || "Admin"} replied:** ${r.content}`, timestamp: r.timestamp || new Date().toISOString(), _source: "conversation", _index: seenReplyCount + i };
+            setMessages(prev => [...prev, msg]);
+            if (!isOpen) setUnreadCount(p => p + 1);
           });
         }
       } catch {}
@@ -324,24 +338,19 @@ export default function ChatbotWidget() {
 
   const addMessage = useCallback((role, content, meta = {}) => {
     const msg = { role, content, timestamp: new Date().toISOString(), ...meta };
-    setMessages((prev) => [...prev, msg]);
-    if (role !== "user" && !isOpen) setUnreadCount((p) => p + 1);
+    setMessages(prev => [...prev, msg]);
+    if (role !== "user" && !isOpen) setUnreadCount(p => p + 1);
   }, [isOpen]);
 
   const notifyAdmin = async (text) => {
     if (!activeTicketId) return;
-    try {
-      await axios.post(
-        `${API}/api/support/${activeTicketId}/employee-message`,
-        { message: text },
-        { headers: getHeaders() }
-      );
-    } catch {}
+    try { await axios.post(`${API}/api/support/${activeTicketId}/employee-message`, { message: text }, { headers: getHeaders() }); } catch {}
   };
 
   const startNewChat = () => {
     setActiveTicketId(null);
     setMessages([{ ...WELCOME_MSG, timestamp: new Date().toISOString() }]);
+    setReactions({});
     setShowQuestions(true);
     setShowContactOption(false);
     setSeenReplyCount(0);
@@ -349,97 +358,88 @@ export default function ChatbotWidget() {
     setInput("");
     setShowHistory(false);
     setContextMenu(null);
+    setEmojiPicker(null);
   };
 
   const loadTicket = (ticket) => {
     const thread = buildThread(ticket, currentUserId);
     setActiveTicketId(ticket.ticket_id);
-    setMessages(
-      thread.length > 0
-        ? thread
-        : [{ role: "assistant", content: "This conversation is loaded. You can continue chatting here.", timestamp: ticket.created_at }]
-    );
+    setMessages(thread.length > 0 ? thread : [{ role: "assistant", content: "This conversation is loaded. You can continue chatting here.", timestamp: ticket.created_at }]);
+    setReactions(safeParseObj(ticket.reactions));
     setSeenReplyCount(safeParseArray(ticket.conversation).length);
     setShowQuestions(false);
     setShowContactOption(false);
     setInput("");
     setShowHistory(false);
     setContextMenu(null);
+    setEmojiPicker(null);
   };
 
-  // ── Delete message ────────────────────────────────────────────────────────
+  // ── React with emoji ────────────────────────────────────────────────────────
+  const handleReact = async (messageKey, emoji) => {
+    if (!activeTicketId) return;
+    try {
+      const res = await axios.post(
+        `${API}/api/support/${activeTicketId}/react`,
+        { messageKey, emoji },
+        { headers: getHeaders() }
+      );
+      setReactions(res.data.reactions || {});
+    } catch (err) { console.error("React failed:", err); }
+  };
+
+  // ── Delete message ──────────────────────────────────────────────────────────
   const handleDeleteMessage = async (msgIdx, scope) => {
     setContextMenu(null);
     const msg = messages[msgIdx];
-
-    // If no ticket yet, just remove locally
     if (!activeTicketId || msg._source === undefined) {
       setMessages(prev => prev.filter((_, i) => i !== msgIdx));
       return;
     }
-
     try {
-      await axios.delete(
-        `${API}/api/support/${activeTicketId}/message`,
-        {
-          headers: getHeaders(),
-          data: {
-            messageIndex: msg._index,
-            messageSource: msg._source,
-            scope,
-          },
-        }
-      );
+      await axios.delete(`${API}/api/support/${activeTicketId}/message`, {
+        headers: getHeaders(),
+        data: { messageIndex: msg._index, messageSource: msg._source, scope },
+      });
+      setMessages(prev => prev.filter((_, i) => i !== msgIdx));
+      // Re-fetch reactions if deleted for everyone (indices shifted)
       if (scope === "everyone") {
-        // Remove from local state entirely
-        setMessages(prev => prev.filter((_, i) => i !== msgIdx));
-      } else {
-        // Remove from local state for this user
-        setMessages(prev => prev.filter((_, i) => i !== msgIdx));
+        const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
+        const t = (res.data.data || []).find(t => t.ticket_id === activeTicketId);
+        if (t) setReactions(safeParseObj(t.reactions));
       }
-    } catch (err) {
-      console.error("Delete message failed:", err);
-    }
+    } catch (err) { console.error("Delete message failed:", err); }
   };
 
   const handleRightClick = (e, msgIdx) => {
     e.preventDefault();
     const msg = messages[msgIdx];
-    // Don't show context menu for welcome/system messages without source info
     if (msg.role === "assistant" && msg._source === undefined) return;
+    setEmojiPicker(null);
     setContextMenu({ x: e.clientX, y: e.clientY, msgIdx });
   };
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      addMessage("assistant", "File size must be under **5MB**. Please choose a smaller file.");
-      return;
-    }
+    if (file.size > 5 * 1024 * 1024) { addMessage("assistant", "File size must be under **5MB**. Please choose a smaller file."); return; }
     setSelectedFile(file);
   };
 
   const uploadFile = async () => {
     if (!selectedFile) return;
-    if (!activeTicketId) {
-      addMessage("assistant", "Please create a support ticket first, then you can attach files.");
-      setSelectedFile(null); return;
-    }
+    if (!activeTicketId) { addMessage("assistant", "Please create a support ticket first, then you can attach files."); setSelectedFile(null); return; }
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append("file", selectedFile);
-      const res = await axios.post(`${API}/api/attachments/${activeTicketId}`, formData, {
-        headers: { ...getHeaders(), "Content-Type": "multipart/form-data" },
-      });
-      setAttachments((prev) => [...prev, res.data.data]);
+      const res = await axios.post(`${API}/api/attachments/${activeTicketId}`, formData, { headers: { ...getHeaders(), "Content-Type": "multipart/form-data" } });
+      setAttachments(prev => [...prev, res.data.data]);
       addMessage("user", `Sent file: **${selectedFile.name}** (${formatFileSize(selectedFile.size)})`);
       setSelectedFile(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
-    } catch (err) {
-      addMessage("assistant", `Upload failed: ${err.response?.data?.message || "Please try again."}`);
-    } finally { setUploading(false); }
+    } catch (err) { addMessage("assistant", `Upload failed: ${err.response?.data?.message || "Please try again."}`); }
+    finally { setUploading(false); }
   };
 
   const handleSend = async (text) => {
@@ -449,17 +449,13 @@ export default function ChatbotWidget() {
     addMessage("user", userText);
     if (activeTicketId) notifyAdmin(userText);
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 400));
     const escalateKW = ["contact support", "human", "live agent", "speak to someone", "real person", "support team", "contact admin", "talk to admin"];
-    if (escalateKW.some((k) => userText.toLowerCase().includes(k))) {
-      setLoading(false);
-      addMessage("assistant", "Sure! I'll connect you with our support team. Please click **Contact Support Team** below to create a ticket.");
-      setShowContactOption(true); return;
+    if (escalateKW.some(k => userText.toLowerCase().includes(k))) {
+      setLoading(false); addMessage("assistant", "Sure! I'll connect you with our support team. Please click **Contact Support Team** below to create a ticket."); setShowContactOption(true); return;
     }
     if (isOutOfScope(userText)) {
-      setLoading(false);
-      addMessage("assistant", "I'm sorry, that topic is outside my scope. I'm specifically designed to help with **HR-related queries** like leave, attendance, company policies, and payroll.\n\nWould you like to contact our support team for further assistance?");
-      setShowContactOption(true); return;
+      setLoading(false); addMessage("assistant", "I'm sorry, that topic is outside my scope. I'm specifically designed to help with **HR-related queries** like leave, attendance, company policies, and payroll.\n\nWould you like to contact our support team for further assistance?"); setShowContactOption(true); return;
     }
     const predefined = findPredefinedAnswer(userText);
     if (predefined) { setLoading(false); addMessage("assistant", predefined); return; }
@@ -469,19 +465,16 @@ export default function ChatbotWidget() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 500,
+          model: "claude-sonnet-4-20250514", max_tokens: 500,
           system: "You are a chatbot for Shnoor International. Answer only HR-related questions about company policies, leave, attendance, payroll, and technical support. If asked something unrelated to HR, say you cannot help with that topic and suggest contacting support. Be concise and friendly.",
-          messages: history
-            .filter((m) => m.role === "user" || m.role === "assistant")
-            .map((m) => ({ role: m.role, content: m.content })),
+          messages: history.filter(m => m.role === "user" || m.role === "assistant").map(m => ({ role: m.role, content: m.content })),
         }),
       });
       const data = await response.json();
       const aiReply = data.content?.[0]?.text || "I'm not sure about that. Please contact support for help.";
       addMessage("assistant", aiReply);
       const uncertain = ["not sure", "don't know", "cannot answer", "contact support", "unable to", "i'm sorry", "outside my"];
-      if (uncertain.some((p) => aiReply.toLowerCase().includes(p))) setTimeout(() => setShowContactOption(true), 500);
+      if (uncertain.some(p => aiReply.toLowerCase().includes(p))) setTimeout(() => setShowContactOption(true), 500);
     } catch {
       addMessage("assistant", "I'm having trouble connecting right now. Please try again or contact our support team for help.");
       setShowContactOption(true);
@@ -491,24 +484,15 @@ export default function ChatbotWidget() {
   const handleEscalate = async () => {
     setEscalating(true); setShowContactOption(false);
     try {
-      const chatHistory = messages.map((m) => ({
-        role: m.role === "admin" ? "assistant" : m.role,
-        content: m.content,
-        timestamp: m.timestamp,
-      }));
-      const res = await axios.post(
-        `${API}/api/support`,
-        { subject: `Support Request from ${getUserName()}`, messages: chatHistory },
-        { headers: getHeaders() }
-      );
+      const chatHistory = messages.map(m => ({ role: m.role === "admin" ? "assistant" : m.role, content: m.content, timestamp: m.timestamp }));
+      const res = await axios.post(`${API}/api/support`, { subject: `Support Request from ${getUserName()}`, messages: chatHistory }, { headers: getHeaders() });
       const newTicketId = res.data.data?.ticket_id;
       setActiveTicketId(newTicketId);
       setSeenReplyCount(0);
       fetchTickets();
       addMessage("assistant", `Ticket created and sent to the admin team.\n\nI'll notify you here when they reply. You can also click **"Check Reply"** anytime.\n\n📎 You can now attach files using the paperclip icon below.`);
-    } catch {
-      addMessage("assistant", "There was an issue creating your support ticket. Please try again.");
-    } finally { setEscalating(false); }
+    } catch { addMessage("assistant", "There was an issue creating your support ticket. Please try again."); }
+    finally { setEscalating(false); }
   };
 
   const checkForReply = async () => {
@@ -516,8 +500,9 @@ export default function ChatbotWidget() {
     setCheckingReply(true);
     try {
       const res = await axios.get(`${API}/api/support/my`, { headers: getHeaders() });
-      const ticket = (res.data.data || []).find((t) => t.ticket_id === activeTicketId);
+      const ticket = (res.data.data || []).find(t => t.ticket_id === activeTicketId);
       if (!ticket) { addMessage("assistant", "Couldn't find your ticket. Please try again."); return; }
+      setReactions(safeParseObj(ticket.reactions));
       const conv = safeParseArray(ticket.conversation);
       if (conv.length === 0) { addMessage("assistant", "No reply yet. The admin will get back to you soon."); return; }
       if (conv.length > seenReplyCount) {
@@ -539,36 +524,25 @@ export default function ChatbotWidget() {
     return                       { bg: "#f1f5f9",                                   color: "#1e293b", radius: "16px 16px 16px 4px",  align: "flex-start" };
   };
 
-  const activeTicket = tickets.find((t) => t.ticket_id === activeTicketId);
+  const getMessageKey = (msg) => msg._source && msg._index !== undefined ? `${msg._source}-${msg._index}` : null;
+  const activeTicket = tickets.find(t => t.ticket_id === activeTicketId);
 
   return (
     <>
-      <div
-        onClick={() => setIsOpen(!isOpen)}
+      {/* FAB */}
+      <div onClick={() => setIsOpen(!isOpen)}
         style={{ position: "fixed", bottom: 28, right: 28, zIndex: 9999, width: 56, height: 56, borderRadius: "50%", background: "linear-gradient(135deg, #4f46e5, #7c3aed)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", boxShadow: "0 4px 20px rgba(79,70,229,0.5)", transition: "transform 0.2s" }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.1)"}
-        onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-      >
+        onMouseEnter={e => e.currentTarget.style.transform = "scale(1.1)"}
+        onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
         {isOpen ? <X size={22} color="#fff" /> : <MessageCircle size={22} color="#fff" />}
         {!isOpen && unreadCount > 0 && (
-          <div style={{ position: "absolute", top: -4, right: -4, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 20, height: 20, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            {unreadCount}
-          </div>
+          <div style={{ position: "absolute", top: -4, right: -4, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 20, height: 20, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{unreadCount}</div>
         )}
       </div>
 
       {isOpen && (
         <div style={{ position: "fixed", bottom: 96, right: 28, zIndex: 9998, width: 375, height: 590, borderRadius: 16, background: "#fff", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column", overflow: "hidden", fontFamily: "'Segoe UI', sans-serif", animation: "slideUp 0.2s ease" }}>
-          {showHistory && (
-            <HistoryPanel
-              tickets={tickets}
-              activeTicketId={activeTicketId}
-              onSelect={loadTicket}
-              onNew={startNewChat}
-              onClose={() => setShowHistory(false)}
-              loading={ticketsLoading}
-            />
-          )}
+          {showHistory && <HistoryPanel tickets={tickets} activeTicketId={activeTicketId} onSelect={loadTicket} onNew={startNewChat} onClose={() => setShowHistory(false)} loading={ticketsLoading} />}
 
           {/* Header */}
           <div style={{ background: "linear-gradient(135deg, #4f46e5, #7c3aed)", padding: "14px 18px", color: "#fff" }}>
@@ -583,75 +557,98 @@ export default function ChatbotWidget() {
               </div>
               <button onClick={() => setShowHistory(true)} style={hdrBtn}><History size={12} /> History</button>
               <button onClick={startNewChat} title="New chat" style={hdrBtn}><Plus size={13} /></button>
-              {activeTicketId && (
-                <button onClick={checkForReply} disabled={checkingReply} style={hdrBtn}>
-                  <RefreshCw size={11} /> {checkingReply ? "…" : "Check"}
-                </button>
-              )}
+              {activeTicketId && <button onClick={checkForReply} disabled={checkingReply} style={hdrBtn}><RefreshCw size={11} /> {checkingReply ? "…" : "Check"}</button>}
             </div>
             {activeTicket && (
               <div style={{ marginTop: 8, padding: "5px 10px", background: "rgba(255,255,255,0.12)", borderRadius: 8, fontSize: 11, color: "rgba(255,255,255,0.9)", display: "flex", alignItems: "center", gap: 6 }}>
                 <MessageSquare size={11} style={{ flexShrink: 0 }} />
-                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>
-                  #{activeTicketId} · {activeTicket.subject}
-                </span>
-                <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 10, background: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>
-                  {STATUS_LABEL[activeTicket.status] || activeTicket.status}
-                </span>
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>#{activeTicketId} · {activeTicket.subject}</span>
+                <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: "2px 6px", borderRadius: 10, background: "rgba(255,255,255,0.2)", textTransform: "uppercase" }}>{STATUS_LABEL[activeTicket.status] || activeTicket.status}</span>
               </div>
             )}
           </div>
 
           {/* Messages */}
-          <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ flex: 1, overflowY: "auto", padding: "14px 14px 8px", display: "flex", flexDirection: "column", gap: 10 }}
+            onClick={() => { setContextMenu(null); setEmojiPicker(null); }}>
             {messages.map((msg, idx) => {
               const style = getBubbleStyle(msg.role);
-              const isDeletable = msg.role !== "assistant" || msg._source !== undefined;
+              const isDeletable = !(msg.role === "assistant" && msg._source === undefined);
+              const canDeleteAll = msg.role === "user" && !!activeTicketId;
+              const msgKey = getMessageKey(msg);
+              const showReactBtn = !!activeTicketId && msgKey;
+
               return (
                 <div key={idx} style={{ display: "flex", justifyContent: style.align }}>
-                  <div style={{ maxWidth: "85%", position: "relative" }}
-                    onContextMenu={(e) => isDeletable && handleRightClick(e, idx)}
-                  >
-                    {/* Hover delete icon */}
-                    {isDeletable && (
-                      <div
-                        className="msg-delete-btn"
-                        onClick={(e) => { e.stopPropagation(); handleRightClick(e, idx); }}
-                        style={{
-                          position: "absolute",
-                          top: -8,
-                          [style.align === "flex-end" ? "left" : "right"]: -22,
-                          opacity: 0,
-                          transition: "opacity 0.15s",
-                          cursor: "pointer",
-                          padding: 3,
-                          background: "#f1f5f9",
-                          borderRadius: "50%",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          zIndex: 1,
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-                      >
-                        <Trash2 size={11} color="#94a3b8" />
+                  <div style={{ maxWidth: "85%", position: "relative" }}>
+
+                    {/* Action buttons row — shown on hover via CSS class trick */}
+                    <div
+                      className={`msg-actions-${idx}`}
+                      style={{
+                        position: "absolute",
+                        top: -10,
+                        [style.align === "flex-end" ? "left" : "right"]: 0,
+                        display: "flex",
+                        gap: 3,
+                        opacity: 0,
+                        transition: "opacity 0.15s",
+                        zIndex: 5,
+                      }}
+                    >
+                      {showReactBtn && (
+                        <button
+                          onClick={e => { e.stopPropagation(); setContextMenu(null); setEmojiPicker(emojiPicker === idx ? null : idx); }}
+                          style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "2px 5px", cursor: "pointer", fontSize: 14, lineHeight: 1, boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}
+                          title="React"
+                        >😊</button>
+                      )}
+                      {isDeletable && (
+                        <button
+                          onClick={e => { e.stopPropagation(); setEmojiPicker(null); handleRightClick(e, idx); }}
+                          style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "3px 5px", cursor: "pointer", display: "flex", alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}
+                          title="Delete"
+                        ><Trash2 size={11} color="#94a3b8" /></button>
+                      )}
+                    </div>
+
+                    {/* Emoji picker */}
+                    {emojiPicker === idx && (
+                      <div style={{ position: "absolute", [style.align === "flex-end" ? "right" : "left"]: 0, bottom: "calc(100% + 6px)", zIndex: 9999 }}
+                        onClick={e => e.stopPropagation()}>
+                        <EmojiPicker
+                          onSelect={emoji => handleReact(msgKey, emoji)}
+                          onClose={() => setEmojiPicker(null)}
+                        />
                       </div>
                     )}
+
+                    {/* Bubble */}
                     <div
-                      style={{ padding: "10px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none", cursor: isDeletable ? "context-menu" : "default" }}
+                      style={{ padding: "10px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none", cursor: "default" }}
                       dangerouslySetInnerHTML={{ __html: renderContent(msg.content) }}
+                      onContextMenu={e => isDeletable && handleRightClick(e, idx)}
                       onMouseEnter={e => {
-                        const btn = e.currentTarget.parentElement.querySelector(".msg-delete-btn");
-                        if (btn) btn.style.opacity = "1";
+                        const el = e.currentTarget.parentElement.querySelector(`.msg-actions-${idx}`);
+                        if (el) el.style.opacity = "1";
                       }}
                       onMouseLeave={e => {
-                        const btn = e.currentTarget.parentElement.querySelector(".msg-delete-btn");
-                        if (btn) btn.style.opacity = "0";
+                        const el = e.currentTarget.parentElement.querySelector(`.msg-actions-${idx}`);
+                        if (el && emojiPicker !== idx) el.style.opacity = "0";
                       }}
                     />
+
+                    {/* Timestamp */}
                     <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3, textAlign: style.align === "flex-end" ? "right" : "left" }}>
                       {msg.role === "admin" ? "Admin • " : ""}{fmt(msg.timestamp)}
                     </div>
+
+                    {/* Reaction bar */}
+                    {msgKey && (
+                      <div style={{ display: "flex", justifyContent: style.align }}>
+                        <ReactionBar reactions={reactions} messageKey={msgKey} currentUserId={currentUserId} onReact={handleReact} />
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -660,23 +657,17 @@ export default function ChatbotWidget() {
             {/* Attachments */}
             {attachments.length > 0 && (
               <div style={{ background: "#f8fafc", borderRadius: 10, padding: 10, border: "1px solid #e2e8f0" }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                  Attachments ({attachments.length})
-                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.04em" }}>Attachments ({attachments.length})</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  {attachments.map((att) => (
+                  {attachments.map(att => (
                     <div key={att.attachment_id} style={{ display: "flex", alignItems: "center", gap: 8, background: "#fff", borderRadius: 8, padding: "6px 10px", border: "1px solid #e2e8f0" }}>
                       {isImageType(att.file_type) ? <Image size={16} color="#4f46e5" /> : <FileText size={16} color="#64748b" />}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{att.file_name}</div>
                         <div style={{ fontSize: 10, color: "#94a3b8" }}>{att.uploader_name} • {formatFileSize(att.file_size)}</div>
                       </div>
-                      {isImageType(att.file_type) && (
-                        <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#4f46e5", textDecoration: "none", flexShrink: 0 }}>View</a>
-                      )}
-                      <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" download={att.file_name} style={{ color: "#64748b", display: "flex", alignItems: "center", flexShrink: 0 }}>
-                        <Download size={14} />
-                      </a>
+                      {isImageType(att.file_type) && <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#4f46e5", textDecoration: "none", flexShrink: 0 }}>View</a>}
+                      <a href={`${API}${att.file_url}`} target="_blank" rel="noreferrer" download={att.file_name} style={{ color: "#64748b", display: "flex", alignItems: "center", flexShrink: 0 }}><Download size={14} /></a>
                     </div>
                   ))}
                 </div>
@@ -698,9 +689,7 @@ export default function ChatbotWidget() {
                   <button onClick={handleEscalate} disabled={escalating} style={{ flex: 1, padding: "7px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
                     {escalating ? "Creating..." : "✅ Yes, Contact Support"}
                   </button>
-                  <button onClick={() => setShowContactOption(false)} style={{ padding: "7px 12px", background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
-                    No Thanks
-                  </button>
+                  <button onClick={() => setShowContactOption(false)} style={{ padding: "7px 12px", background: "#f1f5f9", color: "#64748b", border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>No Thanks</button>
                 </div>
               </div>
             )}
@@ -713,12 +702,8 @@ export default function ChatbotWidget() {
                 <div style={{ fontSize: 12, fontWeight: 500, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📎 {selectedFile.name}</div>
                 <div style={{ fontSize: 10, color: "#64748b" }}>{formatFileSize(selectedFile.size)}</div>
               </div>
-              <button onClick={uploadFile} disabled={uploading} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>
-                {uploading ? "Uploading..." : "Send File"}
-              </button>
-              <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ef4444", padding: 2, display: "flex", alignItems: "center" }}>
-                <X size={14} />
-              </button>
+              <button onClick={uploadFile} disabled={uploading} style={{ background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, padding: "5px 12px", fontSize: 12, fontWeight: 600, cursor: "pointer", flexShrink: 0 }}>{uploading ? "Uploading..." : "Send File"}</button>
+              <button onClick={() => { setSelectedFile(null); if (fileInputRef.current) fileInputRef.current.value = ""; }} style={{ background: "transparent", border: "none", cursor: "pointer", color: "#ef4444", padding: 2, display: "flex", alignItems: "center" }}><X size={14} /></button>
             </div>
           )}
 
@@ -729,10 +714,8 @@ export default function ChatbotWidget() {
                 {QUICK_QUESTIONS.map((q, i) => (
                   <button key={i} onClick={() => handleSend(q)}
                     style={{ background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: 20, padding: "4px 10px", fontSize: 11.5, cursor: "pointer", fontWeight: 500 }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = "#c7d2fe"}
-                    onMouseLeave={(e) => e.currentTarget.style.background = "#e0e7ff"}>
-                    {q}
-                  </button>
+                    onMouseEnter={e => e.currentTarget.style.background = "#c7d2fe"}
+                    onMouseLeave={e => e.currentTarget.style.background = "#e0e7ff"}>{q}</button>
                 ))}
               </div>
             </div>
@@ -752,7 +735,7 @@ export default function ChatbotWidget() {
               style={{ background: "transparent", border: "none", cursor: "pointer", padding: 4, display: "flex", alignItems: "center", color: activeTicketId ? "#4f46e5" : "#cbd5e1", flexShrink: 0 }}>
               <Paperclip size={18} />
             </button>
-            <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown}
+            <input ref={inputRef} value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
               placeholder="Ask me anything about HR..." disabled={loading}
               style={{ flex: 1, border: "1px solid #e2e8f0", borderRadius: 24, padding: "8px 14px", fontSize: 13, outline: "none", background: "#f8fafc" }} />
             <button onClick={() => handleSend()} disabled={!input.trim() || loading}
@@ -763,12 +746,10 @@ export default function ChatbotWidget() {
         </div>
       )}
 
-      {/* Context Menu */}
       {contextMenu && (
         <MessageContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          canDeleteForEveryone={canDeleteForEveryone(messages[contextMenu.msgIdx])}
+          x={contextMenu.x} y={contextMenu.y}
+          canDeleteForEveryone={messages[contextMenu.msgIdx]?.role === "user" && !!activeTicketId}
           onDeleteForMe={() => handleDeleteMessage(contextMenu.msgIdx, "self")}
           onDeleteForEveryone={() => handleDeleteMessage(contextMenu.msgIdx, "everyone")}
           onClose={() => setContextMenu(null)}

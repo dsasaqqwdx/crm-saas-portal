@@ -7,6 +7,17 @@ const { createNotification, getCompanyAdmins, getSuperAdmins } = require("../not
 
 const isAdmin = roleCheck(["company_admin", "super_admin", "software_owner"]);
 
+const parseArr = (raw) => {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return []; }
+};
+const parseObj = (raw) => {
+  if (!raw) return {};
+  if (typeof raw === "object" && !Array.isArray(raw)) return raw;
+  try { return JSON.parse(raw); } catch { return {}; }
+};
+
 // POST — create/escalate a ticket
 router.post("/", auth, async (req, res) => {
   try {
@@ -15,9 +26,9 @@ router.post("/", auth, async (req, res) => {
     if (!subject) return res.status(400).json({ success: false, message: "Subject is required" });
 
     const result = await pool.query(
-      `INSERT INTO support_tickets (user_id, company_id, subject, messages, conversation)
-       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-      [user_id, company_id, subject, JSON.stringify(messages || []), JSON.stringify([])]
+      `INSERT INTO support_tickets (user_id, company_id, subject, messages, conversation, reactions)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [user_id, company_id, subject, JSON.stringify(messages || []), JSON.stringify([]), JSON.stringify({})]
     );
     const ticket = result.rows[0];
 
@@ -31,7 +42,6 @@ router.post("/", auth, async (req, res) => {
       await createNotification(adminId, "new_ticket",
         `🎫 New support ticket from ${userName}: "${subject}"`, ticket.ticket_id);
     }
-
     res.status(201).json({ success: true, data: ticket });
   } catch (err) {
     console.error(err);
@@ -52,7 +62,6 @@ router.post("/:id/employee-message", auth, async (req, res) => {
     const admins = await getCompanyAdmins(company_id);
     const superAdmins = await getSuperAdmins();
     const allAdmins = [...new Set([...admins, ...superAdmins])];
-
     for (const adminId of allAdmins) {
       await createNotification(
         adminId, "employee_message",
@@ -60,7 +69,6 @@ router.post("/:id/employee-message", auth, async (req, res) => {
         parseInt(id)
       );
     }
-
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -68,7 +76,7 @@ router.post("/:id/employee-message", auth, async (req, res) => {
   }
 });
 
-// GET — all tickets
+// GET — all tickets (admin)
 router.get("/", auth, isAdmin, async (req, res) => {
   try {
     const { role, company_id } = req.user;
@@ -129,7 +137,7 @@ router.get("/my", auth, async (req, res) => {
   }
 });
 
-// POST — admin sends a reply
+// POST — admin reply
 router.post("/:id/reply", auth, isAdmin, async (req, res) => {
   try {
     const { id: admin_id } = req.user;
@@ -145,8 +153,7 @@ router.post("/:id/reply", auth, isAdmin, async (req, res) => {
     if (ticketRes.rows.length === 0)
       return res.status(404).json({ success: false, message: "Ticket not found" });
 
-    let conversation = ticketRes.rows[0].conversation || [];
-    if (typeof conversation === "string") { try { conversation = JSON.parse(conversation); } catch { conversation = []; } }
+    let conversation = parseArr(ticketRes.rows[0].conversation);
     conversation.push({ role: "admin", sender: senderName, content: reply_text.trim(), timestamp: new Date().toISOString() });
 
     const result = await pool.query(
@@ -168,70 +175,108 @@ router.post("/:id/reply", auth, isAdmin, async (req, res) => {
   }
 });
 
+// POST — toggle emoji reaction on a message
+// Body: { messageKey, emoji }
+// messageKey: "messages-{index}" | "conversation-{index}"
+// Toggles: adds if not reacted, removes if already reacted by this user
+router.post("/:id/react", auth, async (req, res) => {
+  try {
+    const { id: user_id } = req.user;
+    const { id } = req.params;
+    const { messageKey, emoji } = req.body;
+
+    if (!messageKey || !emoji)
+      return res.status(400).json({ success: false, message: "messageKey and emoji are required" });
+
+    const ALLOWED = ["👍", "👎", "❤️", "😂", "😮", "😢", "🔥", "✅"];
+    if (!ALLOWED.includes(emoji))
+      return res.status(400).json({ success: false, message: "Emoji not allowed" });
+
+    const ticketRes = await pool.query("SELECT reactions FROM support_tickets WHERE ticket_id = $1", [id]);
+    if (ticketRes.rows.length === 0)
+      return res.status(404).json({ success: false, message: "Ticket not found" });
+
+    const reactions = parseObj(ticketRes.rows[0].reactions);
+    if (!reactions[messageKey]) reactions[messageKey] = {};
+    if (!reactions[messageKey][emoji]) reactions[messageKey][emoji] = [];
+
+    const idx = reactions[messageKey][emoji].indexOf(user_id);
+    if (idx === -1) {
+      reactions[messageKey][emoji].push(user_id);
+    } else {
+      reactions[messageKey][emoji].splice(idx, 1);
+      if (reactions[messageKey][emoji].length === 0) delete reactions[messageKey][emoji];
+      if (Object.keys(reactions[messageKey]).length === 0) delete reactions[messageKey];
+    }
+
+    await pool.query(
+      `UPDATE support_tickets SET reactions = $1, updated_at = NOW() WHERE ticket_id = $2`,
+      [JSON.stringify(reactions), id]
+    );
+
+    res.json({ success: true, reactions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // DELETE — a specific message from a ticket
-// Body: { messageIndex, messageSource, scope }
-//   messageSource: "messages" | "conversation"
-//   scope: "self" | "everyone"
-//   messageIndex: index within the source array
 router.delete("/:id/message", auth, async (req, res) => {
   try {
     const { id: user_id, role } = req.user;
     const { id } = req.params;
     const { messageIndex, messageSource, scope } = req.body;
 
-    if (messageIndex === undefined || !messageSource || !scope) {
+    if (messageIndex === undefined || !messageSource || !scope)
       return res.status(400).json({ success: false, message: "messageIndex, messageSource, and scope are required" });
-    }
 
-    // Only admins can delete for everyone
     const adminRoles = ["company_admin", "super_admin", "software_owner"];
-    if (scope === "everyone" && !adminRoles.includes(role)) {
+    if (scope === "everyone" && !adminRoles.includes(role))
       return res.status(403).json({ success: false, message: "Only admins can delete for everyone" });
-    }
 
     const ticketRes = await pool.query("SELECT * FROM support_tickets WHERE ticket_id = $1", [id]);
     if (ticketRes.rows.length === 0)
       return res.status(404).json({ success: false, message: "Ticket not found" });
 
     const ticket = ticketRes.rows[0];
-
-    // Parse the array
-    let parseArr = (raw) => {
-      if (!raw) return [];
-      if (Array.isArray(raw)) return raw;
-      try { return JSON.parse(raw); } catch { return []; }
-    };
-
-    let messages = parseArr(ticket.messages);
+    let messages     = parseArr(ticket.messages);
     let conversation = parseArr(ticket.conversation);
+    let reactions    = parseObj(ticket.reactions);
+    const targetArr  = messageSource === "conversation" ? conversation : messages;
 
-    const targetArr = messageSource === "conversation" ? conversation : messages;
-
-    if (messageIndex < 0 || messageIndex >= targetArr.length) {
+    if (messageIndex < 0 || messageIndex >= targetArr.length)
       return res.status(400).json({ success: false, message: "Invalid message index" });
-    }
 
     if (scope === "everyone") {
-      // Remove the message from the array entirely
       targetArr.splice(messageIndex, 1);
+      const prefix = messageSource === "conversation" ? "conversation" : "messages";
+      const newReactions = {};
+      for (const [k, v] of Object.entries(reactions)) {
+        if (k.startsWith(prefix + "-")) {
+          const kIdx = parseInt(k.split("-")[1]);
+          if (kIdx < messageIndex) newReactions[k] = v;
+          else if (kIdx > messageIndex) newReactions[`${prefix}-${kIdx - 1}`] = v;
+        } else {
+          newReactions[k] = v;
+        }
+      }
+      reactions = newReactions;
     } else {
-      // "Delete for me" — mark as deleted for this user only (soft delete)
       targetArr[messageIndex] = {
         ...targetArr[messageIndex],
         deletedFor: [...(targetArr[messageIndex].deletedFor || []), user_id],
       };
     }
 
-    // Write back
-    const updatedMessages    = messageSource === "messages"      ? JSON.stringify(targetArr) : JSON.stringify(messages);
-    const updatedConversation = messageSource === "conversation"  ? JSON.stringify(targetArr) : JSON.stringify(conversation);
+    const updatedMessages     = messageSource === "messages"     ? JSON.stringify(targetArr) : JSON.stringify(messages);
+    const updatedConversation = messageSource === "conversation" ? JSON.stringify(targetArr) : JSON.stringify(conversation);
 
     await pool.query(
-      `UPDATE support_tickets SET messages = $1, conversation = $2, updated_at = NOW() WHERE ticket_id = $3`,
-      [updatedMessages, updatedConversation, id]
+      `UPDATE support_tickets SET messages = $1, conversation = $2, reactions = $3, updated_at = NOW() WHERE ticket_id = $4`,
+      [updatedMessages, updatedConversation, JSON.stringify(reactions), id]
     );
-
-    res.json({ success: true, message: scope === "everyone" ? "Message deleted for everyone" : "Message deleted for you" });
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -247,7 +292,8 @@ router.put("/:id/status", auth, isAdmin, async (req, res) => {
       `UPDATE support_tickets SET status = $1, updated_at = NOW() WHERE ticket_id = $2 RETURNING *`,
       [status, id]
     );
-    if (result.rows.length === 0) return res.status(404).json({ success: false, message: "Ticket not found" });
+    if (result.rows.length === 0)
+      return res.status(404).json({ success: false, message: "Ticket not found" });
     res.json({ success: true, data: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -255,7 +301,7 @@ router.put("/:id/status", auth, isAdmin, async (req, res) => {
   }
 });
 
-// DELETE — ticket
+// DELETE — whole ticket
 router.delete("/:id", auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params;
