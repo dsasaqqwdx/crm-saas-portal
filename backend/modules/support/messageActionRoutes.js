@@ -4,7 +4,6 @@ const pool = require("../../config/db");
 const auth = require("../../middleware/authMiddleware");
 const { createNotification, getCompanyAdmins, getSuperAdmins } = require("../notifications/notificationHelper");
 
-
 router.get("/:ticket_id", auth, async (req, res) => {
   try {
     const { ticket_id } = req.params;
@@ -15,8 +14,6 @@ router.get("/:ticket_id", auth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 router.post("/reaction", auth, async (req, res) => {
   try {
     const { id: user_id, company_id, role } = req.user;
@@ -26,7 +23,6 @@ router.post("/reaction", auth, async (req, res) => {
       `SELECT * FROM message_actions WHERE ticket_id = $1 AND message_key = $2 AND user_id = $3 AND action_type = 'reaction' AND value = $4`,
       [ticket_id, message_key, user_id, emoji]
     );
-
     if (existing.rows.length > 0) {
       await pool.query(
         `DELETE FROM message_actions WHERE ticket_id = $1 AND message_key = $2 AND user_id = $3 AND action_type = 'reaction' AND value = $4`,
@@ -34,19 +30,14 @@ router.post("/reaction", auth, async (req, res) => {
       );
       return res.json({ success: true, toggled: "off" });
     }
-
     await pool.query(
       `INSERT INTO message_actions (ticket_id, message_key, user_id, action_type, value)
        VALUES ($1, $2, $3, 'reaction', $4)
        ON CONFLICT (ticket_id, message_key, user_id, action_type) DO UPDATE SET value = $4`,
       [ticket_id, message_key, user_id, emoji]
     );
-
-    
     const userRes = await pool.query("SELECT name FROM users WHERE user_id = $1", [user_id]);
     const reactorName = userRes.rows[0]?.name || "Someone";
-
-   
     const ticketRes = await pool.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticket_id]);
     const ticketOwnerId = ticketRes.rows[0]?.user_id;
 
@@ -56,8 +47,7 @@ router.post("/reaction", auth, async (req, res) => {
         await createNotification(ticketOwnerId, "reaction_added",
           `${emoji} ${reactorName} reacted to a message`, parseInt(ticket_id));
       }
-    } else {
-      
+    } else {  
       const admins = await getCompanyAdmins(company_id);
       const superAdmins = await getSuperAdmins();
       const allAdmins = [...new Set([...admins, ...superAdmins])];
@@ -75,8 +65,6 @@ router.post("/reaction", auth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 router.post("/delete-for-me", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -93,8 +81,6 @@ router.post("/delete-for-me", auth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 router.post("/delete-for-everyone", auth, async (req, res) => {
   try {
     const { id: user_id, company_id, role } = req.user;
@@ -105,9 +91,7 @@ router.post("/delete-for-everyone", auth, async (req, res) => {
        ON CONFLICT (ticket_id, message_key, user_id, action_type) DO NOTHING`,
       [ticket_id, message_key, user_id]
     );
-
-    
-    const userRes = await pool.query("SELECT name FROM users WHERE user_id = $1", [user_id]);
+   const userRes = await pool.query("SELECT name FROM users WHERE user_id = $1", [user_id]);
     const deleterName = userRes.rows[0]?.name || "Someone";
     const ticketRes = await pool.query("SELECT user_id FROM support_tickets WHERE ticket_id = $1", [ticket_id]);
     const ticketOwnerId = ticketRes.rows[0]?.user_id;
@@ -128,7 +112,6 @@ router.post("/delete-for-everyone", auth, async (req, res) => {
         }
       }
     }
-
     res.json({ success: true });
   } catch (err) {
     console.error(err);

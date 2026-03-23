@@ -350,7 +350,6 @@ export default function ChatbotWidget() {
     setContextMenu(null);
     setEmojiPicker(null);
   };
-
   const loadTicket = (ticket) => {
     const thread = buildThread(ticket, currentUserId);
     setActiveTicketId(ticket.ticket_id);

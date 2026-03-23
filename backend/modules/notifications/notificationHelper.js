@@ -1,6 +1,4 @@
 const pool = require("../../config/db");
-
-
 const createNotification = async (user_id, type, message, ticket_id = null) => {
   try {
     await pool.query(
@@ -9,11 +7,9 @@ const createNotification = async (user_id, type, message, ticket_id = null) => {
       [user_id, ticket_id, type, message]
     );
   } catch (err) {
-    console.error("❌ Failed to create notification:", err.message);
+    console.error("Failed to create notification:", err.message);
   }
 };
-
-
 const getCompanyAdmins = async (company_id) => {
   try {
     const result = await pool.query(
@@ -27,7 +23,6 @@ const getCompanyAdmins = async (company_id) => {
   }
 };
 
-
 const getSuperAdmins = async () => {
   try {
     const result = await pool.query(
@@ -39,8 +34,6 @@ const getSuperAdmins = async () => {
     return [];
   }
 };
-
-
 const getTicketOwner = async (ticket_id) => {
   try {
     const result = await pool.query(

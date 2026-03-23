@@ -193,7 +193,7 @@ router.post("/:id/react", auth, async (req, res) => {
 router.delete("/:id/message", auth, async (req, res) => {
   try {
     const { id: user_id, role } = req.user;
-    const { id } = req.params;
+    const { id }= req.params;
     const { messageIndex, messageSource, scope } = req.body;
 
     if (messageIndex === undefined || !messageSource || !scope)
@@ -238,7 +238,6 @@ router.delete("/:id/message", auth, async (req, res) => {
     }
     const updatedMessages     = messageSource === "messages"     ? JSON.stringify(targetArr) : JSON.stringify(messages);
     const updatedConversation = messageSource === "conversation" ? JSON.stringify(targetArr) : JSON.stringify(conversation);
-
     await pool.query(
       `UPDATE support_tickets SET messages = $1, conversation = $2, reactions = $3, updated_at = NOW() WHERE ticket_id = $4`,
       [updatedMessages, updatedConversation, JSON.stringify(reactions), id]

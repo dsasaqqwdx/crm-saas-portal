@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../../config/db");
 const auth = require("../../middleware/authMiddleware");
-
 router.get("/", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -17,7 +16,6 @@ router.get("/", auth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
 router.get("/unread-count", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -48,7 +46,6 @@ router.post("/", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
 router.put("/mark-all-read", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -62,8 +59,6 @@ router.put("/mark-all-read", auth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 router.delete("/clear-all", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
@@ -74,7 +69,6 @@ router.delete("/clear-all", auth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
 router.put("/:id/read", auth, async (req, res) => {
   try {
     const { id: user_id } = req.user;
