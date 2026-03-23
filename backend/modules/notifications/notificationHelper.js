@@ -1,12 +1,4 @@
 const pool = require("../../config/db");
-
-/**
- * Create a notification for a user
- * @param {number} user_id - recipient
- * @param {string} type - 'new_ticket' | 'admin_reply' | 'file_uploaded' | 'reaction_added' | 'message_deleted'
- * @param {string} message - notification text
- * @param {number|null} ticket_id - optional ticket reference
- */
 const createNotification = async (user_id, type, message, ticket_id = null) => {
   try {
     await pool.query(
@@ -15,13 +7,9 @@ const createNotification = async (user_id, type, message, ticket_id = null) => {
       [user_id, ticket_id, type, message]
     );
   } catch (err) {
-    console.error("❌ Failed to create notification:", err.message);
+    console.error("Failed to create notification:", err.message);
   }
 };
-
-/**
- * Get all company_admin user_ids for a given company
- */
 const getCompanyAdmins = async (company_id) => {
   try {
     const result = await pool.query(
@@ -30,14 +18,11 @@ const getCompanyAdmins = async (company_id) => {
     );
     return result.rows.map(r => r.user_id);
   } catch (err) {
-    console.error("❌ Failed to get company admins:", err.message);
+    console.error(" Failed to get company admins:", err.message);
     return [];
   }
 };
 
-/**
- * Get all superadmin/software_owner user_ids
- */
 const getSuperAdmins = async () => {
   try {
     const result = await pool.query(
@@ -45,14 +30,10 @@ const getSuperAdmins = async () => {
     );
     return result.rows.map(r => r.user_id);
   } catch (err) {
-    console.error("❌ Failed to get super admins:", err.message);
+    console.error(" Failed to get super admins:", err.message);
     return [];
   }
 };
-
-/**
- * Get ticket owner (employee who created it)
- */
 const getTicketOwner = async (ticket_id) => {
   try {
     const result = await pool.query(
@@ -61,7 +42,7 @@ const getTicketOwner = async (ticket_id) => {
     );
     return result.rows[0] || null;
   } catch (err) {
-    console.error("❌ Failed to get ticket owner:", err.message);
+    console.error(" Failed to get ticket owner:", err.message);
     return null;
   }
 };
