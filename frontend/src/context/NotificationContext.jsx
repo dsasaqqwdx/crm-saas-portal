@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 
@@ -6,12 +5,12 @@ const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const NotificationContext = createContext(null);
 
 const TYPE_ICONS = {
-  new_ticket:       "",
-  admin_reply:      "",
-  employee_message: "",
-  file_uploaded:    "",
-  reaction_added:   "",
-  message_deleted:  "",
+  new_ticket:       "ticket",
+  admin_reply:      "reply",
+  employee_message: "msg",
+  file_uploaded:    "addon",
+  reaction_added:   "😊",
+  message_deleted:  "🗑️",
 };
 
 const TYPE_COLORS = {
@@ -36,51 +35,95 @@ const formatTime = (ts) => {
   if (!ts) return "";
   const date = new Date(ts);
   const diff = Math.floor((Date.now() - date) / 1000);
-  if (diff < 60) return "just now";
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 60)    return "just now";
+  if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return date.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 };
 
+const requestBrowserPermission = async () => {
+  if (!("Notification" in window)) return false;
+  if (Notification.permission === "granted") return true;
+  if (Notification.permission === "denied") return false;
+  const result = await Notification.requestPermission();
+  return result === "granted";
+};
+
+const showBrowserNotification = (title, body) => {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    const notif = new Notification(title, {
+      body,
+      icon:    "/favicon.ico",
+      badge:   "/favicon.ico",
+      tag:     "shnoor-notification",
+      renotify: true,
+    });
+    notif.onclick = () => { window.focus(); notif.close(); };
+    setTimeout(() => notif.close(), 6000);
+  } catch (err) {
+    console.error("Browser notification failed:", err);
+  }
+};
+
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [toasts, setToasts] = useState([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const lastCountRef = useRef(-1);
-  const dropdownRef = useRef(null);
+  const [unreadCount, setUnreadCount]     = useState(0);
+  const [toasts, setToasts]               = useState([]);
+  const [dropdownOpen, setDropdownOpen]   = useState(false);
+  const lastCountRef      = useRef(-1);
+  const dropdownRef       = useRef(null);
+  const permissionAskedRef = useRef(false);
 
-  const getToken = () => localStorage.getItem("token");
-  const getHeaders = () => ({ "x-auth-token": getToken() });
+  useEffect(() => {
+    if (permissionAskedRef.current) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    permissionAskedRef.current = true;
+    requestBrowserPermission();
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
-    const token = getToken();
+    const token = localStorage.getItem("token");
     if (!token) return;
+
+    // getHeaders defined inside so no external dependency needed
+    const headers = { "x-auth-token": token };
+
     try {
       const [notifRes, countRes] = await Promise.all([
-        axios.get(`${API}/api/notifications`, { headers: getHeaders() }),
-        axios.get(`${API}/api/notifications/unread-count`, { headers: getHeaders() }),
+        axios.get(`${API}/api/notifications`,              { headers }),
+        axios.get(`${API}/api/notifications/unread-count`, { headers }),
       ]);
-      const newNotifs = notifRes.data.data || [];
-      const newCount = countRes.data.count || 0;
+
+      const newNotifs = notifRes.data.data  || [];
+      const newCount  = countRes.data.count || 0;
 
       setNotifications(newNotifs);
+
       if (lastCountRef.current >= 0 && newCount > lastCountRef.current) {
-        const diff = newCount - lastCountRef.current;
+        const diff    = newCount - lastCountRef.current;
         const newOnes = newNotifs.filter(n => !n.is_read).slice(0, diff);
-        newOnes.forEach(n => addToast(n));
+        newOnes.forEach(n => {
+          addToast(n);
+          showBrowserNotification(TYPE_LABELS[n.type] || "Shnoor Notification", n.message);
+        });
       }
+
       lastCountRef.current = newCount;
       setUnreadCount(newCount);
-    } catch (err) {
+    } catch {
+      // silent fail
     }
-  }, []);
+  }, []); // no external deps — token read inside
 
   useEffect(() => {
     fetchNotifications();
     const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, [fetchNotifications]);
+
   useEffect(() => {
     const handler = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target))
@@ -97,6 +140,8 @@ export function NotificationProvider({ children }) {
   };
 
   const dismissToast = (toastId) => setToasts(prev => prev.filter(t => t.toastId !== toastId));
+
+  const getHeaders = () => ({ "x-auth-token": localStorage.getItem("token") });
 
   const markAsRead = async (id) => {
     try {
@@ -132,11 +177,8 @@ export function NotificationProvider({ children }) {
       TYPE_ICONS, TYPE_COLORS, TYPE_LABELS, formatTime,
     }}>
       {children}
-      <div style={{
-        position: "fixed", top: 16, right: 16, zIndex: 99999,
-        display: "flex", flexDirection: "column", gap: 10,
-        pointerEvents: "none",
-      }}>
+
+      <div style={{ position: "fixed", top: 16, right: 16, zIndex: 99999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
         {toasts.map(toast => (
           <div key={toast.toastId}
             style={{
@@ -150,7 +192,7 @@ export function NotificationProvider({ children }) {
               pointerEvents: "all",
             }}>
             <div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>
-              {TYPE_ICONS[toast.type] || ".."}
+              {TYPE_ICONS[toast.type] || "🔔"}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: TYPE_COLORS[toast.type] || "#4f46e5", marginBottom: 2 }}>
@@ -162,7 +204,9 @@ export function NotificationProvider({ children }) {
               <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>{formatTime(toast.created_at)}</div>
             </div>
             <button onClick={() => dismissToast(toast.toastId)}
-              style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, fontSize: 18, flexShrink: 0, lineHeight: 1, marginTop: -2 }}>×</button>
+              style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, fontSize: 18, flexShrink: 0, lineHeight: 1, marginTop: -2 }}>
+              ×
+            </button>
           </div>
         ))}
       </div>
@@ -184,6 +228,7 @@ export function NotificationProvider({ children }) {
 export function useNotifications() {
   return useContext(NotificationContext);
 }
+
 export function NotificationBell() {
   const ctx = useNotifications();
   if (!ctx) return null;
@@ -222,7 +267,9 @@ export function NotificationBell() {
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
-      </button> {dropdownOpen && (
+      </button>
+
+      {dropdownOpen && (
         <div style={{
           position: "fixed", left: 258, top: "auto",
           width: 340, background: "#fff",
@@ -250,10 +297,11 @@ export function NotificationBell() {
               )}
             </div>
           </div>
+
           <div style={{ maxHeight: 400, overflowY: "auto" }}>
             {notifications.length === 0 ? (
               <div style={{ textAlign: "center", padding: "32px 16px", color: "#94a3b8" }}>
-                <div style={{ fontSize: 36, marginBottom: 8 }}>..</div>
+                <div style={{ fontSize: 36, marginBottom: 8 }}>🔔</div>
                 <div style={{ fontSize: 13 }}>No notifications yet</div>
               </div>
             ) : notifications.map(n => (
@@ -273,7 +321,7 @@ export function NotificationBell() {
                   background: `${TYPE_COLORS[n.type] || "#4f46e5"}18`,
                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16,
                 }}>
-                  {TYPE_ICONS[n.type] || ".."}
+                  {TYPE_ICONS[n.type] || "🔔"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, color: "#1e293b", lineHeight: 1.45, fontWeight: n.is_read ? 400 : 600 }}>
