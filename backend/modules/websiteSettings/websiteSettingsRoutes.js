@@ -3,9 +3,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../../config/db");
 const auth = require("../../middleware/authMiddleware");
-const roleCheck = require("../../middleware/roleCheck");
-const superOnly = roleCheck(["super_admin", "software_owner"]);
-
+const roleCheck = require("../../middleware/roleCheck"); const superOnly = roleCheck(["super_admin", "software_owner"]);
 router.get("/", async (req, res) => {
 try {
 const result = await pool.query("SELECT * FROM website_settings ORDER BY section ASC");

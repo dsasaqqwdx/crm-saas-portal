@@ -22,7 +22,7 @@ import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
 import PricingPage from "./roles/Superadmin/saas/PricingPage";
 import Designations from './roles/Designations';
            import WebsiteSettingsPage from "./roles/Superadmin/saas/WebsiteSettingsPage";
-
+  import AdminProfile from "./roles/Admin/profile/AdminProfile";
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -53,7 +53,7 @@ function App() {
             <SuperadminDashboard />
           </ProtectedRoute>
         } />
-
+<Route path="/admin/profile" element={<AdminProfile />} />
 <Route path="/superadmin/website-settings" element={
 <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
  <WebsiteSettingsPage />

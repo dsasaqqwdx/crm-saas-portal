@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../../layouts/Sidebar";
 import axios from "axios";
-import { Layout, Type, Phone, Tag, Star, ChevronRight, Save, CheckCircle, AlertCircle, Upload } from "lucide-react";
-
-const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
-
+import { Layout, Type, Phone, Tag, Star, ChevronRight, Save, CheckCircle, AlertCircle, Upload } from "lucide-react";const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const DEFAULTS = {
 header: {
 appName: "Shnoor International LLC SAAS",
@@ -52,9 +49,7 @@ const inputCls = {
 display: "block", width: "100%", padding: "9px 12px",
 border: "1px solid #e2e8f0", borderRadius: 8, fontSize: 13,
 outline: "none", background: "#fff", color: "#1e293b", transition: "border 0.15s",
-};
-
-const labelCls = {
+};const labelCls = {
 fontSize: 11, fontWeight: 700, color: "#64748b",
 textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 5, display: "block",
 };
@@ -126,7 +121,7 @@ onMouseLeave={e => e.currentTarget.style.background = "#f1f5f9"}>
 {currentLogo ? "Change Logo" : "Upload Logo"}
 <input type="file" accept="image/*" onChange={handleFile} style={{ display: "none" }} />
 </label>
-<p style={{ fontSize: 11, color: "#94a3b8", marginTop: 5, marginBottom: 0 }}>PNG, JPG or SVG - Max 2MB - Shown as circle</p>
+<p style={{ fontSize: 11, color: "#94a3b8", marginTop: 5, marginBottom: 0 }}>PNG, JPG or SVG</p>
 </div>
 </div>
 </div>
@@ -136,21 +131,21 @@ function HeaderForm({ data, onChange }) {
 return (
 <>
 <div style={sectionDivider}>Basic Settings</div>
-<Field label="App Name" name="appName" value={data.appName} onChange={onChange} />
+<Field label="App Name"    name="appName" value={data.appName} onChange={onChange} />
 <div style={sectionDivider}>Header Settings</div>
-<Field label="Header Title" name="title" value={data.title} onChange={onChange} />
-<Field label="Header Sub Title" name="subtitle" value={data.subtitle} onChange={onChange} />
-<Field label="Header Description" name="description" value={data.description} onChange={onChange} rows={4} />
+<Field   label="Header Title"   name="title" value={data.title}     onChange={onChange} />
+<Field label="Header Sub Title" name="subtitle"    value={data.subtitle} onChange={onChange} />
+<Field   label="Header Description"    name="description" value={data.description} onChange={onChange} rows={4} />
 <div style={sectionDivider}>Header Buttons</div>
-<Toggle label="Show Button 1" name="showBtn1" value={data.showBtn1} onChange={onChange} />
+<Toggle label="Get Started button" name="showBtn1" value={data.showBtn1} onChange={onChange} /> 
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-<Field label="Button 1 Text" name="btn1Text" value={data.btn1Text} onChange={onChange} />
+<Field    label="Button 1 Text" name="btn1Text" value={data.btn1Text} onChange={onChange} />
 <Field label="Button 1 URL" name="btn1Url" value={data.btn1Url} onChange={onChange} />
 </div>
-<Toggle label="Show Button 2" name="showBtn2" value={data.showBtn2} onChange={onChange} />
+<Toggle   label="View Features button" name="showBtn2" value={data.showBtn2} onChange={onChange} />
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-<Field label="Button 2 Text" name="btn2Text" value={data.btn2Text} onChange={onChange} />
-<Field label="Button 2 URL" name="btn2Url" value={data.btn2Url} onChange={onChange} />
+<Field label="Button 2 Text"     name="btn2Text" value={data.btn2Text} onChange={onChange} />
+<Field     label="Button 2 URL" name="btn2Url" value={data.btn2Url} onChange={onChange} />
 </div>
 </>
 );
@@ -160,24 +155,24 @@ return (
 <>
 <LogoUpload currentLogo={data.logo || ""} onChange={onChange} />
 <div style={sectionDivider}>Footer Details</div>
-<Field label="Company Name" name="companyName" value={data.companyName} onChange={onChange} />
+<Field label="Company Name"    name="companyName" value={data.companyName} onChange={onChange} />
 <Field label="Tagline" name="tagline" value={data.tagline} onChange={onChange} />
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-<Field label="Email" name="email" value={data.email} onChange={onChange} />
-<Field label="Phone" name="phone" value={data.phone} onChange={onChange} />
+<Field label="Email"   name="email" value={data.email} onChange={onChange} />
+<Field label="Phone" name="phone"    value={data.phone} onCh  ange={onChange} />
 </div>
-<Field label="Address" name="address" value={data.address} onChange={onChange} />
-<Field label="Copyright" name="copyright" value={data.copyright} onChange={onChange} />
+<Field label="Address"   name="address" value={data.address} onChange={onChange} />
+<Field label="Copyright" name="copyright"  value={data.copyright} onChange={onChange} />
 </>
 );
 }function ContactForm({ data, onChange }) {
 return (
 <>
-<Field label="Page Title" name="title" value={data.title} onChange={onChange} />
-<Field label="Subtitle" name="subtitle" value={data.subtitle} onChange={onChange} rows={2} />
+<Field          label="Page Title"     name="title" v alue={data.title} onChange={onChange} />
+<Field          label="Subtitle"  name="subtitle" valu e={data.subtitle} onChange={onChange} rows={2} />
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-<Field label="Email" name="email" value={data.email} onChange={onChange} />
-<Field label="Phone" name="phone" value={data.phone} onChange={onChange} />
+<Field label="Email" name="email"   value={data.email} onChange={onChange} />
+<Field label="Phone"  name="phone" value={data.phone} onChange={onChange} />
 </div>
 <Field label="Address" name="address" value={data.address} onChange={onChange} />
 </>
@@ -187,22 +182,22 @@ return (
 function PricingForm({ data, onChange }) {
 return (
 <>
-<Field label="Page Title" name="title" value={data.title} onChange={onChange} />
-<Field label="Subtitle" name="subtitle" value={data.subtitle} onChange={onChange} />
+<Field        label="Page Title" name="title"  value={data.title} onChange={onChange} />
+<Field label="Subtitle"     name="subtitle" value={data.subtitle} onChange={onChange} />
 <div style={sectionDivider}>Plan 1 - Basic</div>
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-<Field label="Plan Name" name="plan1Name" value={data.plan1Name} onChange={onChange} />
-<Field label="Price ($/mo)" name="plan1Price" value={data.plan1Price} onChange={onChange} type="number" />
+<Field label="Plan Name"     name="plan1Name" value={data.plan1Name} onChange={onChange} />
+<Field        label="Price ($/mo)" name="plan1Price" value={data.plan1Price} onChange={onChange} type="number" />
 </div>
 <div style={sectionDivider}>Plan 2 - Pro</div>
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-<Field label="Plan Name" name="plan2Name" value={data.plan2Name} onChange={onChange} />
-<Field label="Price ($/mo)" name="plan2Price" value={data.plan2Price} onChange={onChange} type="number" />
+<Field label="Plan Name"    name="plan2Name" value={data.plan2Name} onChange={onChange} />
+<Field        label="Price ($/mo)" name="plan2Price" value={data.plan2Price} onChange={onChange} type="number" />
 </div>
 <div style={sectionDivider}>Plan 3 - Enterprise</div>
 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-<Field label="Plan Name" name="plan3Name" value={data.plan3Name} onChange={onChange} />
-<Field label="Price ($/mo)" name="plan3Price" value={data.plan3Price} onChange={onChange} type="number" />
+<Field label="Plan Name"  name="plan3Name" value={data.plan3Name} onChange={onChange} />
+<Field label="Price ($/mo)" name="plan3Price" value={data.plan3Price}     onChange={onChange} type="number" />  
 </div>
 </>
 );
@@ -211,8 +206,8 @@ return (
 function FeaturesForm({ data, onChange }) {
 return (
 <>
-<Field label="Page Title" name="title" value={data.title} onChange={onChange} />
-<Field label="Subtitle" name="subtitle" value={data.subtitle} onChange={onChange} />
+<Field      label="Page Title" name="title" value={data.title} onChange={onChange} />
+<Field label="Subtitle" name="subtitle" value={data.subtitle} onC hange={onChange} />
 </>
 );
 }

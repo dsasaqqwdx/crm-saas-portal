@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "../layouts/Navbar";
+import Footer from "../layouts/Footer";
 import { Check, Zap, Shield, Crown } from "lucide-react";
 import { useWebsiteSettings } from "../hooks/useWebsiteSettings";
 
@@ -75,6 +76,7 @@ const Pricing = () => {
 ))}
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

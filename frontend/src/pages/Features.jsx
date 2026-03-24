@@ -1,5 +1,6 @@
 import React from "react";
 import Navbar from "../layouts/Navbar";
+import Footer from "../layouts/Footer";
 import { CheckCircle, Zap, Shield, BarChart3, Users, Smartphone } from "lucide-react";
 import { useWebsiteSettings } from "../hooks/useWebsiteSettings";const featureList = [
   { title: "Smart Payroll",          desc: "Automated tax calculations and direct deposits.",     icon: <Zap className="text-warning" size={30} /> },
@@ -43,6 +44,7 @@ const Features = () => {
           ))}
         </div>
       </div>
+      <Footer />
     </div>
   );
 };

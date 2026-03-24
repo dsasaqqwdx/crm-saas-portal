@@ -3,11 +3,10 @@ import { Link } from "react-router-dom";
 import { Globe } from "lucide-react";
 import { useWebsiteSettings } from "../hooks/useWebsiteSettings";
 import fallbackLogo from "../assets/logo.png";
-
 const Navbar = () => {
   const { data: s } = useWebsiteSettings("header");
 const { data: f } = useWebsiteSettings("footer");
-const appName = s.appName || "Shnoor";
+const appName = s.appName || "Shnoor International LLC";
 const logoSrc = f.logo    || fallbackLogo;
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark fixed-top shadow">

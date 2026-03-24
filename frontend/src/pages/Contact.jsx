@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Navbar from "../layouts/Navbar";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
+import Footer from "../layouts/Footer";
 import { useWebsiteSettings } from "../hooks/useWebsiteSettings";
 
 const Contact = () => {
@@ -95,6 +96,9 @@ const Contact = () => {
 
         </div>
       </div>
+
+
+      <Footer />
     </div>
   );
 };

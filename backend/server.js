@@ -27,6 +27,7 @@ const departmentRoutes   = require("./modules/departments/departmentRoutes");
 const designationRoutes  = require("./routes/designations");
 const planRoutes         = require("./modules/saas/planRoutes");
 const attachmentRoutes   = require("./modules/support/attachmentRoutes");
+const adminProfileRoutes = require("./routes/AdminProfile");
 
 const path = require("path");
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -38,7 +39,7 @@ app.use("/api/support",         require("./modules/support/supportRoutes"));
 app.use("/api/notifications",   require("./modules/notifications/notificationRoutes"));
 app.use("/api/message-actions", require("./modules/support/messageActionRoutes"));
 app.use("/api/website-settings",require("./modules/websiteSettings/websiteSettingsRoutes"));
-
+app.use("/api/admin", adminProfileRoutes);
 app.use('/api/auth',        authRoutes);
 app.use('/api/dashboard',   dashboardRoutes);
 app.use('/api/employees',   employeeRoutes);

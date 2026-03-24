@@ -61,7 +61,7 @@ return (
    <li className="d-flex align-items-start gap-2">
                 <MapPin size={15} className="text-info mt-1 flex-shrink-0" />
                 <span className="text-secondary small">{address}</span>
-    </li>
+</li>
             </ul>
           </div></div>
  </div>

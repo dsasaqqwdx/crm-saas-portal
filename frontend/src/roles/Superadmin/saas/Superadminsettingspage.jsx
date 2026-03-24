@@ -64,9 +64,7 @@ const SuperadminSettingsPage = () => {
     section_title: "Platform Capabilities",
     section_subtitle: "Everything you need to manage a modern workforce efficiently.",
   });
-
   const handleSave = () => {
-    // would POST to backend in real use
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };

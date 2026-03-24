@@ -1,426 +1,227 @@
+
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import Sidebar from "../../../layouts/Sidebar";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
 export default function DepartmentsPage() {
-  const [departments, setDepartments] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editItem, setEditItem] = useState(null);
-  const [formName, setFormName] = useState("");
-  const [formError, setFormError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [search, setSearch] = useState("");
+const [departments, setDepartments] = useState([]);
+const [loading, setLoading] = useState(true);
+const [modalOpen, setModalOpen] = useState(false);
+const [editItem, setEditItem] = useState(null);
+const [formName, setFormName] = useState("");
+const [formError, setFormError] = useState("");
+const [submitting, setSubmitting] = useState(false);
+const [deleteConfirm, setDeleteConfirm] = useState(null);
+const [toast, setToast] = useState(null);
+const [search, setSearch] = useState("");
 
-  const token = localStorage.getItem("token");
-  const headers = { "x-auth-token": token };
+const token = localStorage.getItem("token");
+const headers = { "x-auth-token": token };
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  };
-
-  const fetchDepartments = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.get(`${API}/api/departments`, { headers });
-      setDepartments(res.data.data || []);
-    } catch (err) {
-      showToast("Failed to load departments", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchDepartments();
-  }, []);
-
-  const openAdd = () => {
-    setEditItem(null);
-    setFormName("");
-    setFormError("");
-    setModalOpen(true);
-  };
-
-  const openEdit = (dept) => {
-    setEditItem(dept);
-    setFormName(dept.department_name);
-    setFormError("");
-    setModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditItem(null);
-    setFormName("");
-    setFormError("");
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!formName.trim()) {
-      setFormError("Department name is required");
-      return;
-    }
-    setSubmitting(true);
-    setFormError("");
-    try {
-      if (editItem) {
-        await axios.put(
-          `${API}/api/departments/${editItem.department_id}`,
-          { department_name: formName },
-          { headers }
-        );
-        showToast("Department updated successfully");
-      } else {
-        await axios.post(
-          `${API}/api/departments`,
-          { department_name: formName },
-          { headers }
-        );
-        showToast("Department created successfully");
-      }
-      closeModal();
-      fetchDepartments();
-    } catch (err) {
-      setFormError(err.response?.data?.message || "Something went wrong");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    try {
-      await axios.delete(`${API}/api/departments/${id}`, { headers });
-      showToast("Department deleted successfully");
-      setDeleteConfirm(null);
-      fetchDepartments();
-    } catch (err) {
-      showToast(err.response?.data?.message || "Delete failed", "error");
-      setDeleteConfirm(null);
-    }
-  };
-
-  const filtered = departments.filter((d) =>
-    d.department_name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div style={styles.page}>
-      
-      {toast && (
-        <div style={{ ...styles.toast, background: toast.type === "error" ? "#ef4444" : "#10b981" }}>
-          {toast.message}
-        </div>
-      )}
-
-      
-      <div style={styles.header}>
-        <div>
-          <h1 style={styles.title}>Departments</h1>
-          <p style={styles.subtitle}>Manage your company departments</p>
-        </div>
-        <button style={styles.addBtn} onClick={openAdd}>
-          + Add Department
-        </button>
-      </div>
-
-      
-      <div style={styles.searchRow}>
-        <input
-          style={styles.searchInput}
-          placeholder="Search departments..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <span style={styles.countBadge}>{filtered.length} total</span>
-      </div>
-
-      
-      <div style={styles.card}>
-        {loading ? (
-          <div style={styles.center}>Loading...</div>
-        ) : filtered.length === 0 ? (
-          <div style={styles.center}>
-            {search ? "No departments match your search." : "No departments found. Add one!"}
-          </div>
-        ) : (
-          <table style={styles.table}>
-            <thead>
-              <tr style={styles.thead}>
-                <th style={styles.th}>#</th>
-                <th style={styles.th}>Department Name</th>
-                <th style={{ ...styles.th, textAlign: "right" }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((dept, idx) => (
-                <tr key={dept.department_id} style={styles.tr}>
-                  <td style={styles.td}>{idx + 1}</td>
-                  <td style={styles.td}>
-                    <div style={styles.nameCell}>
-                      <span style={styles.avatar}>
-                        {dept.department_name.charAt(0).toUpperCase()}
-                      </span>
-                      {dept.department_name}
-                    </div>
-                  </td>
-                  <td style={{ ...styles.td, textAlign: "right" }}>
-                    <button style={styles.editBtn} onClick={() => openEdit(dept)}>
-                      Edit
-                    </button>
-                    <button
-                      style={styles.deleteBtn}
-                      onClick={() => setDeleteConfirm(dept)}
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      
-      {modalOpen && (
-        <div style={styles.overlay}>
-          <div style={styles.modal}>
-            <h2 style={styles.modalTitle}>
-              {editItem ? "Edit Department" : "Add Department"}
-            </h2>
-            <form onSubmit={handleSubmit}>
-              <label style={styles.label}>Department Name *</label>
-              <input
-                style={styles.input}
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="e.g. Human Resources"
-                autoFocus
-              />
-              {formError && <p style={styles.errorText}>{formError}</p>}
-              <div style={styles.modalActions}>
-                <button type="button" style={styles.cancelBtn} onClick={closeModal}>
-                  Cancel
-                </button>
-                <button type="submit" style={styles.saveBtn} disabled={submitting}>
-                  {submitting ? "Saving..." : editItem ? "Update" : "Create"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      
-      {deleteConfirm && (
-        <div style={styles.overlay}>
-          <div style={styles.modal}>
-            <h2 style={styles.modalTitle}>Delete Department</h2>
-            <p style={styles.confirmText}>
-              Are you sure you want to delete{" "}
-              <strong>"{deleteConfirm.department_name}"</strong>? This action cannot be undone.
-            </p>
-            <div style={styles.modalActions}>
-              <button
-                style={styles.cancelBtn}
-                onClick={() => setDeleteConfirm(null)}
-              >
-                Cancel
-              </button>
-              <button
-                style={styles.deleteConfirmBtn}
-                onClick={() => handleDelete(deleteConfirm.department_id)}
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-const styles = {
-  page: {
-    padding: "24px",
-    fontFamily: "'Segoe UI', sans-serif",
-    background: "#f8fafc",
-    minHeight: "100vh",
-    position: "relative",
-  },
-  toast: {
-    position: "fixed",
-    top: 20,
-    right: 20,
-    color: "#fff",
-    padding: "12px 20px",
-    borderRadius: 8,
-    fontWeight: 500,
-    zIndex: 9999,
-    boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-  },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    marginBottom: 24,
-  },
-  title: { margin: 0, fontSize: 24, fontWeight: 700, color: "#1e293b" },
-  subtitle: { margin: "4px 0 0", color: "#64748b", fontSize: 14 },
-  addBtn: {
-    background: "#4f46e5",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "10px 18px",
-    fontWeight: 600,
-    cursor: "pointer",
-    fontSize: 14,
-  },
-  searchRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    maxWidth: 320,
-    border: "1px solid #e2e8f0",
-    borderRadius: 8,
-    padding: "8px 14px",
-    fontSize: 14,
-    outline: "none",
-    background: "#fff",
-  },
-  countBadge: {
-    background: "#e0e7ff",
-    color: "#4f46e5",
-    padding: "4px 12px",
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 600,
-  },
-  card: {
-    background: "#fff",
-    borderRadius: 12,
-    boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-    overflow: "hidden",
-  },
-  center: { padding: 40, textAlign: "center", color: "#94a3b8" },
-  table: { width: "100%", borderCollapse: "collapse" },
-  thead: { background: "#f1f5f9" },
-  th: {
-    padding: "12px 16px",
-    textAlign: "left",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#64748b",
-    textTransform: "uppercase",
-    letterSpacing: "0.05em",
-  },
-  tr: { borderBottom: "1px solid #f1f5f9" },
-  td: { padding: "14px 16px", fontSize: 14, color: "#334155" },
-  nameCell: { display: "flex", alignItems: "center", gap: 10 },
-  avatar: {
-    width: 32,
-    height: 32,
-    borderRadius: "50%",
-    background: "#e0e7ff",
-    color: "#4f46e5",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    fontWeight: 700,
-    fontSize: 14,
-    flexShrink: 0,
-  },
-  editBtn: {
-    background: "#f1f5f9",
-    color: "#4f46e5",
-    border: "none",
-    borderRadius: 6,
-    padding: "6px 12px",
-    cursor: "pointer",
-    fontWeight: 500,
-    fontSize: 13,
-    marginRight: 6,
-  },
-  deleteBtn: {
-    background: "#fff1f2",
-    color: "#ef4444",
-    border: "none",
-    borderRadius: 6,
-    padding: "6px 12px",
-    cursor: "pointer",
-    fontWeight: 500,
-    fontSize: 13,
-  },
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(0,0,0,0.4)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    zIndex: 1000,
-  },
-  modal: {
-    background: "#fff",
-    borderRadius: 12,
-    padding: 28,
-    width: 420,
-    boxShadow: "0 20px 60px rgba(0,0,0,0.2)",
-  },
-  modalTitle: { margin: "0 0 20px", fontSize: 18, fontWeight: 700, color: "#1e293b" },
-  label: { display: "block", fontSize: 13, fontWeight: 600, color: "#374151", marginBottom: 6 },
-  input: {
-    width: "100%",
-    border: "1px solid #e2e8f0",
-    borderRadius: 8,
-    padding: "10px 12px",
-    fontSize: 14,
-    outline: "none",
-    boxSizing: "border-box",
-  },
-  errorText: { color: "#ef4444", fontSize: 13, margin: "6px 0 0" },
-  confirmText: { color: "#475569", fontSize: 14, margin: "0 0 20px", lineHeight: 1.6 },
-  modalActions: { display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 },
-  cancelBtn: {
-    background: "#f1f5f9",
-    color: "#64748b",
-    border: "none",
-    borderRadius: 8,
-    padding: "10px 18px",
-    cursor: "pointer",
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  saveBtn: {
-    background: "#4f46e5",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "10px 18px",
-    cursor: "pointer",
-    fontWeight: 600,
-    fontSize: 14,
-  },
-  deleteConfirmBtn: {
-    background: "#ef4444",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "10px 18px",
-    cursor: "pointer",
-    fontWeight: 600,
-    fontSize: 14,
-  },
+const showToast = (message, type = "success") => {
+setToast({ message, type });
+setTimeout(() => setToast(null), 3000);
 };
+
+const fetchDepartments = async () => {
+try {
+setLoading(true);
+const res = await axios.get(`${API}/api/departments`, { headers });
+setDepartments(res.data.data || []);
+} catch {
+showToast("Failed to load departments", "error");
+} finally {
+setLoading(false);
+}
+};
+
+useEffect(() => { fetchDepartments(); }, []);
+
+const openAdd = () => { setEditItem(null); setFormName(""); setFormError(""); setModalOpen(true); };
+const openEdit = (dept) => { setEditItem(dept); setFormName(dept.department_name); setFormError(""); setModalOpen(true); };
+const closeModal = () => { setModalOpen(false); setEditItem(null); setFormName(""); setFormError(""); };
+
+const handleSubmit = async (e) => {
+e.preventDefault();
+if (!formName.trim()) { setFormError("Department name is required"); return; }
+setSubmitting(true); setFormError("");
+try {
+if (editItem) {
+await axios.put(`${API}/api/departments/${editItem.department_id}`, { department_name: formName }, { headers });
+showToast("Department updated successfully");
+} else {
+await axios.post(`${API}/api/departments`, { department_name: formName }, { headers });
+showToast("Department created successfully");
+}
+closeModal(); fetchDepartments();
+} catch (err) {
+setFormError(err.response?.data?.message || "Something went wrong");
+} finally { setSubmitting(false); }
+};
+
+const handleDelete = async (id) => {
+try {
+await axios.delete(`${API}/api/departments/${id}`, { headers });
+showToast("Department deleted successfully");
+setDeleteConfirm(null); fetchDepartments();
+} catch (err) {
+showToast(err.response?.data?.message || "Delete failed", "error");
+setDeleteConfirm(null);
+}
+};
+
+const filtered = departments.filter((d) =>
+d.department_name.toLowerCase().includes(search.toLowerCase())
+);
+
+const palette = [
+{ bg: "#eef2ff", color: "#6366f1" },
+{ bg: "#ecfdf5", color: "#10b981" },
+{ bg: "#fffbeb", color: "#f59e0b" },
+{ bg: "#fdf4ff", color: "#d946ef" },
+{ bg: "#eff6ff", color: "#3b82f6" },
+{ bg: "#fef2f2", color: "#ef4444" },
+];
+
+const s = {
+root: { display: "flex", background: "#f8fafc", minHeight: "100vh", fontFamily: "'Plus Jakarta Sans', sans-serif" },
+main: { marginLeft: "250px", flex: 1, padding: "30px", display: "flex", justifyContent: "center" },
+fullBox: { width: "100%", maxWidth: "1100px", background: "#ffffff", borderRadius: "24px", border: "1px solid #e2e8f0", boxShadow: "0 20px 40px rgba(0,0,0,0.03)", overflow: "hidden", display: "flex", flexDirection: "column" },
+header: { padding: "40px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "flex-end" },
+title: { fontFamily: "'Bricolage Grotesque', sans-serif", fontSize: "32px", fontWeight: "800", color: "#0f172a", margin: 0, letterSpacing: "-0.8px" },
+toolbar: { padding: "20px 40px", background: "#fafbfc", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" },
+searchField: { padding: "12px 18px", borderRadius: "12px", border: "1px solid #e2e8f0", width: "320px", outline: "none", fontSize: "14px", transition: "all 0.2s" },
+btnPrimary: { padding: "12px 24px", background: "#6366f1", color: "#fff", border: "none", borderRadius: "12px", fontWeight: "700", cursor: "pointer", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" },
+table: { width: "100%", borderCollapse: "separate", borderSpacing: "0" },
+th: { padding: "16px 40px", background: "#f8fafc", textAlign: "left", fontSize: "11px", fontWeight: "700", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "2px solid #f1f5f9" },
+td: { padding: "20px 40px", fontSize: "14px", color: "#334155", borderBottom: "1px solid #f1f5f9" },
+avatar: (idx) => ({
+width: "40px", height: "40px", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center",
+fontWeight: "700", fontSize: "15px",
+backgroundColor: palette[idx % palette.length].bg,
+color: palette[idx % palette.length].color
+}),
+modalOverlay: { position: "fixed", inset: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 },
+modalContent: { background: "#fff", width: "450px", borderRadius: "24px", padding: "32px", boxShadow: "0 25px 50px rgba(0,0,0,0.15)" }
+};
+
+return (
+<div style={s.root}>
+<Sidebar />
+<main style={s.main}>
+<div style={s.fullBox}>
+<header style={s.header}>
+<div>
+<h1 style={s.title}>Departments</h1>
+<p style={{ color: "#64748b", marginTop: "4px", fontSize: "15px" }}>Manage and structure company departments and workflows.</p>
+</div>
+<button style={s.btnPrimary} onClick={openAdd}>
+<span style={{ fontSize: "20px", lineHeight: "1" }}>+</span> Add Department
+</button>
+</header>
+
+<div style={s.toolbar}>
+<input
+type="text"
+placeholder="Search departments..."
+style={s.searchField}
+value={search}
+onChange={(e) => setSearch(e.target.value)}
+onFocus={(e) => e.target.style.borderColor = "#6366f1"}
+onBlur={(e) => e.target.style.borderColor = "#e2e8f0"}
+/>
+<div style={{ color: "#94a3b8", fontSize: "13px", fontWeight: "600" }}>{filtered.length} Units Found</div>
+</div>
+
+<div style={{ overflowX: "auto" }}>
+<table style={s.table}>
+<thead>
+<tr>
+<th style={s.th}>Department Entity</th>
+<th style={s.th}>Status</th>
+<th style={{ ...s.th, textAlign: "right" }}>Operational Actions</th>
+</tr>
+</thead>
+<tbody>
+{loading ? (
+<tr><td colSpan="3" style={{ textAlign: "center", padding: "80px", color: "#94a3b8" }}>Syncing organization data...</td></tr>
+) : filtered.length > 0 ? (
+filtered.map((dept, idx) => (
+<tr key={dept.department_id} style={{ transition: "background 0.2s" }} onMouseOver={(e) => e.currentTarget.style.backgroundColor = "#fcfdfe"} onMouseOut={(e) => e.currentTarget.style.backgroundColor = "transparent"}>
+<td style={s.td}>
+<div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+<div style={s.avatar(idx)}>{dept.department_name.charAt(0)}</div>
+<div>
+<div style={{ fontWeight: "700", color: "#1e293b", fontSize: "16px" }}>{dept.department_name}</div>
+<div style={{ fontSize: "12px", color: "#94a3b8", fontWeight: "500" }}>ID: DEPT_{dept.department_id}</div>
+</div>
+</div>
+</td>
+<td style={s.td}>
+<span style={{ padding: "4px 10px", borderRadius: "20px", background: "#ecfdf5", color: "#10b981", fontSize: "12px", fontWeight: "700" }}>Active Unit</span>
+</td>
+<td style={{ ...s.td, textAlign: "right" }}>
+<button onClick={() => openEdit(dept)} style={{ background: "none", border: "none", color: "#6366f1", fontWeight: "700", cursor: "pointer", marginRight: "20px", fontSize: "13px" }}>Modify</button>
+<button onClick={() => setDeleteConfirm(dept)} style={{ background: "none", border: "none", color: "#ef4444", fontWeight: "700", cursor: "pointer", fontSize: "13px" }}>Terminate</button>
+</td>
+</tr>
+))
+) : (
+<tr><td colSpan="3" style={{ textAlign: "center", padding: "80px", color: "#94a3b8" }}>No departments match your search criteria.</td></tr>
+)}
+</tbody>
+</table>
+</div>
+</div>
+</main>
+
+{modalOpen && (
+<div style={s.modalOverlay}>
+<div style={s.modalContent}>
+<h3 style={{ fontFamily: "Bricolage Grotesque", fontSize: "24px", fontWeight: "800", marginBottom: "8px" }}>{editItem ? "Modify Unit" : "New Department"}</h3>
+<p style={{ color: "#64748b", fontSize: "14px", marginBottom: "24px" }}>Enter the official name for this organizational branch.</p>
+<form onSubmit={handleSubmit}>
+<div style={{ marginBottom: "24px" }}>
+<label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#94a3b8", marginBottom: "8px", textTransform: "uppercase" }}>Department Name</label>
+<input
+style={{ ...s.searchField, width: "100%", padding: "14px" }}
+value={formName}
+onChange={(e) => setFormName(e.target.value)}
+placeholder="e.g. Talent Acquisition"
+autoFocus
+/>
+{formError && <p style={{ color: "#ef4444", fontSize: "12px", marginTop: "8px", fontWeight: "600" }}>{formError}</p>}
+</div>
+<div style={{ display: "flex", gap: "12px" }}>
+<button type="button" onClick={closeModal} style={{ flex: 1, padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0", background: "#fff", fontWeight: "700", cursor: "pointer" }}>Discard</button>
+<button type="submit" disabled={submitting} style={{ ...s.btnPrimary, flex: 2, justifyContent: "center" }}>{submitting ? "Processing..." : (editItem ? "Update Entity" : "Create Unit")}</button>
+</div>
+</form>
+</div>
+</div>
+)}
+
+{deleteConfirm && (
+<div style={s.modalOverlay}>
+<div style={{ ...s.modalContent, textAlign: "center" }}>
+<div style={{ width: "60px", height: "60px", background: "#fef2f2", color: "#ef4444", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", fontSize: "24px" }}>!</div>
+<h3 style={{ fontFamily: "Bricolage Grotesque", fontSize: "22px", fontWeight: "800" }}>Terminate Unit?</h3>
+<p style={{ color: "#64748b", fontSize: "14px", margin: "8px 0 24px" }}>Are you sure you want to delete <strong>{deleteConfirm.department_name}</strong>? This action is irreversible.</p>
+<div style={{ display: "flex", gap: "12px" }}>
+<button onClick={() => setDeleteConfirm(null)} style={{ flex: 1, padding: "12px", borderRadius: "12px", border: "1px solid #e2e8f0", background: "#fff", fontWeight: "700", cursor: "pointer" }}>Keep Unit</button>
+<button onClick={() => handleDelete(deleteConfirm.department_id)} style={{ flex: 1, padding: "12px", borderRadius: "12px", border: "none", background: "#ef4444", color: "#fff", fontWeight: "700", cursor: "pointer" }}>Confirm Delete</button>
+</div>
+</div>
+</div>
+)}
+
+{toast && (
+<div style={{ position: "fixed", bottom: "40px", right: "40px", background: toast.type === "error" ? "#ef4444" : "#1e293b", color: "#fff", padding: "16px 24px", borderRadius: "16px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)", zIndex: 2000 }}>
+{toast.message}
+</div>
+)}
+</div>
+);
+}
