@@ -22,7 +22,14 @@ import AddSuperadminPage from "./roles/Superadmin/saas/AddSuperadminPage";
 import PricingPage from "./roles/Superadmin/saas/PricingPage";
 import Designations from './roles/Designations';
            import WebsiteSettingsPage from "./roles/Superadmin/saas/WebsiteSettingsPage";
+           import SuperAdminProfile from "./roles/Superadmin/SuperAdminProfile";
   import AdminProfile from "./roles/Admin/profile/AdminProfile";
+  import AdminPaymentsPage from "./roles/Admin/payments/AdminPaymentsPage";
+
+import './styles/responsive.css';
+import LetterHeads from "./pages/admin/letters/LetterHeads";
+import EmployeeLetters from "./pages/employee/letters/EmployeeLetters.jsx";
+
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -149,8 +156,12 @@ function App() {
             <Leaves />
           </ProtectedRoute>
         } />
-
+<Route path="/super-admin" element={<SuperAdminProfile />} />
+<Route path="/payments" element={<AdminPaymentsPage />} />
         <Route path="*" element={<Navigate to="/" />} />
+        <Route path="/admin/letters" element={<ProtectedRoute allowedRoles={['company_admin','software_owner','super_admin']}><LetterHeads/></ProtectedRoute>}/>
+        <Route path="/admin/letters" element={<ProtectedRoute allowedRoles={['company_admin','software_owner','super_admin']}><LetterHeads/></ProtectedRoute>}/>
+        <Route path="/employee/my-letters" element={<ProtectedRoute allowedRoles={['employee']}><EmployeeLetters/></ProtectedRoute>}/>
       </Routes>
     </Router>
   );

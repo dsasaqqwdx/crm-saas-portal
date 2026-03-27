@@ -26,7 +26,6 @@ const Section = ({ title, icon, children }) => {
 const SuperadminSettingsPage = () => {
   const [saved, setSaved] = useState(false);
 
-  // Header
   const [header, setHeader] = useState({
     logo_text: "SHNOOR INTERNATIONAL LLC",
     nav_links: "Home, Features, Pricing, Contact",
@@ -34,7 +33,6 @@ const SuperadminSettingsPage = () => {
     show_register_btn: true,
   });
 
-  // Footer
   const [footer, setFooter] = useState({
     company_name: "Shnoor International LLC",
     tagline: "Empowering HR globally.",
@@ -43,7 +41,6 @@ const SuperadminSettingsPage = () => {
     footer_links: "Privacy Policy, Terms of Service, Support",
   });
 
-  // Pricing
   const [pricing, setPricing] = useState({
     basic_price: "10",
     pro_price: "25",
@@ -53,7 +50,6 @@ const SuperadminSettingsPage = () => {
     highlight_plan: "Pro",
   });
 
-  // Features
   const [features, setFeatures] = useState({
     feature_1: "Smart Payroll",
     feature_2: "Advanced Security",
@@ -88,7 +84,7 @@ const SuperadminSettingsPage = () => {
           </button>
         </div>
 
-        {/* Header Settings */}
+        
         <Section title="Header Settings" icon={<Layout size={18} />}>
           <div className="row g-3">
             <div className="col-md-6">
@@ -136,7 +132,7 @@ const SuperadminSettingsPage = () => {
           </div>
         </Section>
 
-        {/* Footer Settings */}
+        
         <Section title="Footer Settings" icon={<Type size={18} />}>
           <div className="row g-3">
             <div className="col-md-6">
@@ -190,7 +186,7 @@ const SuperadminSettingsPage = () => {
           </div>
         </Section>
 
-        {/* Pricing Settings */}
+       
         <Section title="Pricing Settings" icon={<DollarSign size={18} />}>
           <div className="row g-3">
             <div className="col-md-3">
@@ -268,7 +264,6 @@ const SuperadminSettingsPage = () => {
           </div>
         </Section>
 
-        {/* Features Settings */}
         <Section title="Features Settings" icon={<Star size={18} />}>
           <div className="row g-3">
             <div className="col-md-6">

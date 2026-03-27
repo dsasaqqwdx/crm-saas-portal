@@ -647,7 +647,7 @@ const AdminProfile = () => {
                   )}
                 </div>
 
-                {/* Name + badges */}
+                
                 <div className="hero-info">
                   <p className="hero-name">{profile.name || "Administrator"}</p>
                   <div className="hero-badges">
@@ -675,7 +675,7 @@ const AdminProfile = () => {
               </div>
             </div>
 
-            {/* Stat strip */}
+           
             <div className="stat-strip">
               <div className="stat-item">
                 <span className="stat-dot" style={{ background: "var(--green)" }} />
@@ -699,10 +699,10 @@ const AdminProfile = () => {
             </div>
           </div>
 
-          {/* ── Info grid ── */}
+          
           <div className="info-grid">
 
-            {/* Personal info */}
+            
             <div className="panel">
               <div className="panel-head">
                 <div className="panel-icon"><User size={16} color="var(--indigo)" /></div>
@@ -735,10 +735,10 @@ const AdminProfile = () => {
               </div>
             </div>
 
-            {/* Right column */}
+            
             <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-              {/* Account details */}
+              
               <div className="panel">
                 <div className="panel-head">
                   <div className="panel-icon"><Building2 size={16} color="var(--indigo)" /></div>
@@ -766,7 +766,7 @@ const AdminProfile = () => {
                 </div>
               </div>
 
-              {/* Change password */}
+              
               <div className="panel">
                 <div className="panel-head">
                   <div className="panel-icon"><Lock size={16} color="var(--indigo)" /></div>
@@ -817,7 +817,7 @@ const AdminProfile = () => {
         </div>
       </div>
 
-      {/* Toast */}
+     
       {toast && (
         <div className={`toast-pop ${toast.type}`}>
           {toast.type === "success" ? <CheckCircle size={16} /> : <AlertCircle size={16} />}

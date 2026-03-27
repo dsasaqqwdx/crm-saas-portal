@@ -1,8 +1,9 @@
- 
+
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import { User, Mail, Lock } from "lucide-react";
+
+import Logo from "../../assets/logo.png";
 
 function Register() {
   const [name, setName] = useState("");
@@ -38,118 +39,195 @@ function Register() {
   };
 
   return (
-    <div className="container-fluid vh-100 d-flex align-items-center bg-light">
+    <div
+      className="container-fluid vh-100"
+      style={{ backgroundColor: "#6366F1", fontFamily: "'Ubuntu', sans-serif" }}
+    >
+      <div className="row h-100">
+        <div
+          className="col-lg-4 col-md-6 d-flex align-items-center justify-content-center shadow-sm"
+          style={{ backgroundColor: "#0F172A" }}
+        >
+          <div
+            className="p-4"
+            style={{
+              width: "100%",
+              maxWidth: "420px",
+              border: "2px solid #1E293B",
+              borderRadius: "10px"
+              
+            }}
+          >
+            <div className="text-center mb-4">
 
-      <div className="row w-100">
+                     <div
+                     className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                     >
+                     <img
+                     src={Logo}
+                     alt="Shnoor Logo"
+                     style={{
+                     width: "30%",
+                     height: "30%",
+                     objectFit: "contain"
+                     }}
+                     />
+                     </div>
 
-        
-        <div className="col-lg-4 col-md-6 mx-auto bg-white p-5 shadow rounded">
+              <h3 className="fw-bold mb-2" style={{ color: "#E2E8F0" }}>
+                Create Account
+              </h3>
 
-          <div className="text-center mb-4">
-            <h3>Register</h3>
-            <p className="text-muted">Create your account to join the platform</p>
-          </div>
-
-          <form onSubmit={registerUser}>
-
-            
-            <div className="mb-3">
-              <label className="form-label">Full Name</label>
-              <div className="input-group">
-                <span className="input-group-text">
-                  <User size={16}/>
-                </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Enter name"
-                  onChange={(e)=>setName(e.target.value)}
-                  required
-                />
-              </div>
+              <p className="small" style={{ color: "#94A3B8" }}>
+                Join Shnoor CRM Platform
+              </p>
             </div>
 
-            
-            <div className="mb-3">
-              <label className="form-label">Email</label>
-              <div className="input-group">
-                <span className="input-group-text">
-                  <Mail size={16}/>
-                </span>
-                <input
-                  type="email"
-                  className="form-control"
-                  placeholder="Enter email"
-                  onChange={(e)=>setEmail(e.target.value)}
-                  required
-                />
+            <form onSubmit={registerUser}>
+              <div className="mb-3 ">
+                <label className="form-label" style={{ color: "#E2E8F0" }}>
+                  Full Name
+                </label>
+                <div className="input-group">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter name"
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                    style={{
+                      backgroundColor: "#1E293B",
+                      color: "#E2E8F0",
+                      borderColor: "#6366F1"
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            
-            <div className="mb-3">
-              <label className="form-label">Password</label>
-              <div className="input-group">
-                <span className="input-group-text">
-                  <Lock size={16}/>
-                </span>
-                <input
-                  type="password"
-                  className="form-control"
-                  placeholder="Enter password"
-                  onChange={(e)=>setPassword(e.target.value)}
-                  required
-                />
+              <div className="mb-3">
+                <label className="form-label" style={{ color: "#E2E8F0" }}>
+                  Email Address
+                </label>
+                <div className="input-group">
+                  <input
+                    type="email"
+                    className="form-control"
+                    placeholder="Enter email"
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    style={{
+                      backgroundColor: "#1E293B",
+                      color: "#E2E8F0",
+                      borderColor: "#6366F1"
+                    }}
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="mb-3">
-              <label className="form-label">Role</label>
-              <select 
-                className="form-select"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
+
+              <div className="mb-3">
+                <label className="form-label" style={{ color: "#E2E8F0" }}>
+                  Password
+                </label>
+                <div className="input-group">
+                  <input
+                    type="password"
+                    className="form-control"
+                    placeholder="Enter password"
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    style={{
+                      backgroundColor: "#1E293B",
+                      color: "#E2E8F0",
+                      borderColor: "#6366F1"
+                    }}
+                  />
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="form-label" style={{ color: "#E2E8F0" }}>
+                  Role
+                </label>
+                <select
+                  className="form-select"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value)}
+                  style={{
+                    backgroundColor: "#1E293B",
+                    color: "#E2E8F0",
+                    borderColor: "#6366F1"
+                  }}
+                >
+                  <option value="company_admin">Company Administrator</option>
+                  <option value="employee">Employee</option>
+                  <option value="super_admin">Super Admin</option>
+                </select>
+              </div>
+
+              <button
+                className="btn btn-lg w-100 mt-3 fw-bold"
+                style={{
+                  backgroundColor: "#6366F1",
+                  color: "#E2E8F0",
+                  borderColor: "#6366F1"
+                }}
               >
-                <option value="company_admin">Company Administrator</option>
-                <option value="employee">Employee</option>
-                <option value="super_admin">Super Admin</option>
-              </select>
+                Register
+              </button>
+
+            </form>
+
+            <div className="text-center mt-4">
+              <p style={{ color: "#E2E8F0" }}>
+                Already have an account?{" "}
+                <Link to="/login" style={{ color: "#22C55E", textDecoration: "none" }}>
+                  Login here
+                </Link>
+              </p>
             </div>
-
-            <button className="btn btn-success w-100 mt-3">
-              Register
-            </button>
-
-          </form>
-
-          <p className="text-center mt-3">
-            Already have an account?{" "}
-            <Link to="/login">Login here</Link>
-          </p>
-
-        </div>
-
-
-        
-        <div className="col-lg-6 d-none d-lg-flex align-items-center justify-content-center">
-
-          <div className="text-center">
-
-            <h1 className="display-5 fw-bold text-primary">
-              Shnoor SaaS HR System
-            </h1>
-
-            <p className="lead">
-              Manage employees, attendance, payroll and leave
-              with a modern HR platform.
-            </p>
-
           </div>
+        </div>
+        <div
+          className="col-lg-8 d-none d-lg-flex  d-md-flex col-md-6  align-items-center justify-content-center position-relative overflow-hidden"
+          style={{ backgroundColor: "#0F172A", color: "#E2E8F0" }}
+        >
+          <div
+            className="position-absolute w-100 h-100"
+            style={{
+              opacity: 0.1,
+              background: `radial-gradient(circle, #6366F1 0%, transparent 70%)`,
+            }}
+          ></div>
 
+          <div className="text-center p-5 z-1">
+            <img
+              src={Logo}
+              alt="CRM Logo"
+              className="mb-4"
+              style={{
+                width: "300px",
+                height: "300px",
+                objectFit: "contain",
+                filter: "drop-shadow(0px 6px 15px rgba(99,102,241,0.5))"
+              }}
+            />
+
+            <h1 className="display-4 fw-bold mb-3">
+               Shnoor SaaS HR System
+            </h1>
+            <div
+              className="p-4 rounded-3"
+              style={{ backgroundColor: "#0F172A" }}
+            >
+              <p className="mb-0">
+                 Manage employees, attendance, payroll and leave
+              with a modern HR platform.
+              </p>
+            </div>
+          </div>
         </div>
 
       </div>
-
     </div>
   );
 }

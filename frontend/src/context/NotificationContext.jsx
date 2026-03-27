@@ -1,347 +1,303 @@
+
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
+import { 
+  Bell, Ticket, MessageSquare, FileText, Heart, Trash2, 
+  Info, Clock, X, CheckCheck, Trash 
+} from "lucide-react";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 const NotificationContext = createContext(null);
 
-const TYPE_ICONS = {
-new_ticket: "T",
-admin_reply: "R",
-employee_message: "M",
-file_uploaded: "F",
-reaction_added: "Re",
-message_deleted: "D",
-};
-
-const TYPE_COLORS = {
-new_ticket: "#4f46e5",
-admin_reply: "#16a34a",
-employee_message: "#0369a1",
-file_uploaded: "#d97706",
-reaction_added: "#be185d",
-message_deleted: "#dc2626",
-};
-
-const TYPE_LABELS = {
-new_ticket: "New Ticket",
-admin_reply: "Admin Replied",
-employee_message: "New Message",
-file_uploaded: "File Uploaded",
-reaction_added: "New Reaction",
-message_deleted: "Message Deleted",
+const TYPE_CONFIG = {
+  new_ticket: { icon: <Ticket size={16} />, color: "#4f46e5", label: "New Ticket" },
+  admin_reply: { icon: <MessageSquare size={16} />, color: "#16a34a", label: "Admin Replied" },
+  employee_message: { icon: <MessageSquare size={16} />, color: "#0369a1", label: "New Message" },
+  file_uploaded: { icon: <FileText size={16} />, color: "#d97706", label: "File Uploaded" },
+  reaction_added: { icon: <Heart size={16} />, color: "#be185d", label: "Reaction" },
+  message_deleted: { icon: <Trash2 size={16} />, color: "#dc2626", label: "Deleted" },
+  default: { icon: <Info size={16} />, color: "#64748b", label: "Update" }
 };
 
 const formatTime = (ts) => {
-if (!ts) return "";
-const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
-if (diff < 60) return "just now";
-if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-return new Date(ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  if (!ts) return "";
+  const diff = Math.floor((Date.now() - new Date(ts)) / 1000);
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return new Date(ts).toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
 };
 
-const requestBrowserPermission = async () => {
-if (!("Notification" in window)) return false;
-if (Notification.permission === "granted") return true;
-if (Notification.permission === "denied") return false;
-return (await Notification.requestPermission()) === "granted";
-};
-
-const showBrowserNotification = (title, body) => {
-if (!("Notification" in window)) return;
-if (Notification.permission !== "granted") return;
-try {
-const n = new Notification(title, {
-body,
-icon: "/favicon.ico",
-badge: "/favicon.ico",
-tag: "shnoor-notif",
-renotify: true,
-});
-n.onclick = () => { window.focus(); n.close(); };
-setTimeout(() => n.close(), 6000);
-} catch (err) {
-console.error("Browser notification error:", err);
+// --- CUSTOM HOOK (The missing piece) ---
+export function useNotifications() {
+  const context = useContext(NotificationContext);
+  if (!context) {
+    throw new Error("useNotifications must be used within a NotificationProvider");
+  }
+  return context;
 }
-};
 
 export function NotificationProvider({ children }) {
-const [notifications, setNotifications] = useState([]);
-const [unreadCount, setUnreadCount] = useState(0);
-const [toasts, setToasts] = useState([]);
-const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [toasts, setToasts] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const lastCountRef = useRef(-1);
+  const dropdownRef = useRef(null);
 
-const lastCountRef = useRef(-1);
-const dropdownRef = useRef(null);
-const permissionAsked = useRef(false);
+  const fetchNotifications = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      const [notifRes, countRes] = await Promise.all([
+        axios.get(`${API}/api/notifications`, { headers: { "x-auth-token": token } }),
+        axios.get(`${API}/api/notifications/unread-count`, { headers: { "x-auth-token": token } }),
+      ]);
+      const freshNotifs = notifRes.data.data || [];
+      const freshCount = countRes.data.count || 0;
 
-useEffect(() => {
-if (permissionAsked.current) return;
-if (!localStorage.getItem("token")) return;
-permissionAsked.current = true;
-requestBrowserPermission();
-}, []);
+      if (lastCountRef.current >= 0 && freshCount > lastCountRef.current) {
+        const newest = freshNotifs[0];
+        const id = Date.now();
+        setToasts(prev => [...prev.slice(-2), { ...newest, toastId: id }]);
+        setTimeout(() => setToasts(prev => prev.filter(t => t.toastId !== id)), 5000);
+      }
+      setNotifications(freshNotifs);
+      setUnreadCount(freshCount);
+      lastCountRef.current = freshCount;
+    } catch (err) { console.error(err); }
+  }, []);
 
-const fetchNotifications = useCallback(async () => {
-const token = localStorage.getItem("token");
-if (!token) return;
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [fetchNotifications]);
 
-const headers = { "x-auth-token": token };
+  const markAsRead = async (id) => {
+    try {
+      await axios.put(`${API}/api/notifications/${id}/read`, {}, { 
+        headers: { "x-auth-token": localStorage.getItem("token") } 
+      });
+      setNotifications(prev => prev.map(n => n.notification_id === id ? { ...n, is_read: true } : n));
+      setUnreadCount(prev => Math.max(0, prev - 1));
+    } catch (err) { console.error(err); }
+  };
 
-try {
-const [notifRes, countRes] = await Promise.all([
-axios.get(`${API}/api/notifications`, { headers }),
-axios.get(`${API}/api/notifications/unread-count`, { headers }),
-]);
+  const markAllRead = async () => {
+    try {
+      await axios.put(`${API}/api/notifications/mark-all-read`, {}, { 
+        headers: { "x-auth-token": localStorage.getItem("token") } 
+      });
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      setUnreadCount(0);
+    } catch (err) { console.error(err); }
+  };
 
-const freshNotifs = notifRes.data.data || [];
-const freshCount = countRes.data.count || 0;
+  const clearAll = async () => {
+    try {
+      await axios.delete(`${API}/api/notifications/clear-all`, {
+        headers: { "x-auth-token": localStorage.getItem("token") },
+      });
+      setNotifications([]);
+      setUnreadCount(0);
+    } catch (err) { console.error(err); }
+  };
 
-setNotifications(freshNotifs);
-setUnreadCount(freshCount);
+  return (
+    <NotificationContext.Provider value={{ 
+        notifications, 
+        unreadCount, 
+        markAsRead, 
+        markAllRead, 
+        clearAll, 
+        dropdownOpen, 
+        setDropdownOpen, 
+        dropdownRef, 
+        TYPE_CONFIG, 
+        formatTime 
+    }}>
+      {children}
+      
+      <div className="notif-toast-wrapper">
+        {toasts.map(t => {
+          const cfg = TYPE_CONFIG[t.type] || TYPE_CONFIG.default;
+          return (
+            <div key={t.toastId} className="modern-toast shadow-lg">
+              <div className="toast-accent" style={{ backgroundColor: cfg.color }}></div>
+              <div className="toast-body">
+                <div className="toast-icon" style={{ backgroundColor: `${cfg.color}15`, color: cfg.color }}>
+                  {cfg.icon}
+                </div>
+                <div className="toast-info">
+                  <div className="toast-label" style={{ color: cfg.color }}>{cfg.label}</div>
+                  <div className="toast-text">{t.message}</div>
+                </div>
+                <button className="toast-close" onClick={() => setToasts(p => p.filter(x => x.toastId !== t.toastId))}>
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
-if (lastCountRef.current >= 0 && freshCount > lastCountRef.current) {
-const newOnes = freshNotifs
-.filter((n) => !n.is_read)
-.slice(0, freshCount - lastCountRef.current);
+      <style>{`
+        .notif-toast-wrapper {
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          z-index: 99999;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          width: 100%;
+          max-width: 340px;
+          pointer-events: none;
+        }
+        .modern-toast {
+          background: white;
+          border-radius: 12px;
+          overflow: hidden;
+          display: flex;
+          pointer-events: auto;
+          animation: slideInNotif 0.3s ease-out;
+          border: 1px solid #e2e8f0;
+        }
+        .toast-accent { width: 4px; flex-shrink: 0; }
+        .toast-body { display: flex; align-items: center; padding: 12px; gap: 12px; width: 100%; }
+        .toast-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .toast-info { flex: 1; min-width: 0; }
+        .toast-label { font-size: 10px; font-weight: 800; text-transform: uppercase; margin-bottom: 2px; }
+        .toast-text { font-size: 12.5px; color: #334155; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .toast-close { background: none; border: none; color: #94a3b8; cursor: pointer; }
 
-newOnes.forEach((n) => {
-addToast(n);
-showBrowserNotification(TYPE_LABELS[n.type] || "Shnoor", n.message);
-});
-}
+        @keyframes slideInNotif {
+          from { transform: translateX(50px); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
 
-lastCountRef.current = freshCount;
-} catch {
-}
-}, []);
-
-useEffect(() => {
-fetchNotifications();
-const interval = setInterval(fetchNotifications, 10000);
-return () => clearInterval(interval);
-}, [fetchNotifications]);
-
-useEffect(() => {
-const handler = (e) => {
-if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-setDropdownOpen(false);
-}
-};
-document.addEventListener("mousedown", handler);
-return () => document.removeEventListener("mousedown", handler);
-}, []);
-
-const addToast = (notif) => {
-const id = Date.now() + Math.random();
-setToasts((prev) => [...prev.slice(-4), { ...notif, toastId: id }]);
-setTimeout(() => setToasts((prev) => prev.filter((t) => t.toastId !== id)), 5000);
-};
-
-const dismissToast = (id) =>
-setToasts((prev) => prev.filter((t) => t.toastId !== id));
-
-const markAsRead = async (id) => {
-try {
-await axios.put(
-`${API}/api/notifications/${id}/read`,
-{},
-{ headers: { "x-auth-token": localStorage.getItem("token") } }
-);
-setNotifications((prev) =>
-prev.map((n) => (n.notification_id === id ? { ...n, is_read: true } : n))
-);
-setUnreadCount((prev) => Math.max(0, prev - 1));
-lastCountRef.current = Math.max(0, lastCountRef.current - 1);
-} catch (err) {
-console.error("markAsRead error:", err);
-}
-};
-
-const markAllRead = async () => {
-try {
-await axios.put(
-`${API}/api/notifications/mark-all-read`,
-{},
-{ headers: { "x-auth-token": localStorage.getItem("token") } }
-);
-setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-setUnreadCount(0);
-lastCountRef.current = 0;
-} catch (err) {
-console.error("markAllRead error:", err);
-}
-};
-
-const clearAll = async () => {
-try {
-await axios.delete(`${API}/api/notifications/clear-all`, {
-headers: { "x-auth-token": localStorage.getItem("token") },
-});
-setNotifications([]);
-setUnreadCount(0);
-lastCountRef.current = 0;
-} catch (err) {
-console.error("clearAll error:", err);
-}
-};
-
-return (
-<NotificationContext.Provider
-value={{
-notifications,
-unreadCount,
-markAsRead,
-markAllRead,
-clearAll,
-dropdownOpen,
-setDropdownOpen,
-dropdownRef,
-fetchNotifications,
-TYPE_ICONS,
-TYPE_COLORS,
-TYPE_LABELS,
-formatTime,
-}}>
-{children}
-
-<div style={{ position: "fixed", top: 16, right: 16, zIndex: 99999, display: "flex", flexDirection: "column", gap: 10, pointerEvents: "none" }}>
-{toasts.map((toast) => (
-<div key={toast.toastId}
-style={{ background: "#fff", borderRadius: 12, boxShadow: "0 8px 32px rgba(0,0,0,0.18)", padding: "13px 14px", display: "flex", alignItems: "flex-start", gap: 10, borderLeft: `4px solid ${TYPE_COLORS[toast.type] || "#4f46e5"}`, animation: "slideInRight 0.3s ease", minWidth: 280, maxWidth: 340, pointerEvents: "all" }}>
-<div style={{ fontSize: 22, flexShrink: 0, lineHeight: 1 }}>
-{TYPE_ICONS[toast.type] || "!"}
-</div>
-<div style={{ flex: 1, minWidth: 0 }}>
-<div style={{ fontSize: 12, fontWeight: 700, color: TYPE_COLORS[toast.type] || "#4f46e5", marginBottom: 2 }}>
-{TYPE_LABELS[toast.type] || "Notification"}
-</div>
-<div style={{ fontSize: 12.5, color: "#334155", lineHeight: 1.45, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
-{toast.message}
-</div>
-<div style={{ fontSize: 10, color: "#94a3b8", marginTop: 3 }}>
-{formatTime(toast.created_at)}
-</div>
-</div>
-<button onClick={() => dismissToast(toast.toastId)}
-style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", padding: 0, fontSize: 18, flexShrink: 0, lineHeight: 1, marginTop: -2 }}>
-x
-</button>
-</div>
-))}
-</div>
-
-<style>{`
-@keyframes slideInRight {
-from { opacity: 0; transform: translateX(50px); }
-to { opacity: 1; transform: translateX(0); }
-}
-@keyframes bellFadeIn {
-from { opacity: 0; transform: translateY(-8px) scale(0.96); }
-to { opacity: 1; transform: translateY(0) scale(1); }
-}
-`}</style>
-</NotificationContext.Provider>
-);
-}
-
-export function useNotifications() {
-return useContext(NotificationContext);
+        @media (max-width: 576px) {
+          .notif-toast-wrapper {
+            top: auto;
+            bottom: 20px;
+            right: 10px;
+            left: 10px;
+            max-width: calc(100% - 20px);
+          }
+        }
+      `}</style>
+    </NotificationContext.Provider>
+  );
 }
 
 export function NotificationBell() {
-const ctx = useNotifications();
-if (!ctx) return null;
+  const { notifications, unreadCount, dropdownOpen, setDropdownOpen, dropdownRef, TYPE_CONFIG, markAsRead, markAllRead, clearAll, formatTime } = useNotifications();
 
-const {
-notifications,
-unreadCount,
-markAsRead,
-markAllRead,
-clearAll,
-dropdownOpen,
-setDropdownOpen,
-dropdownRef,
-TYPE_ICONS,
-TYPE_COLORS,
-formatTime,
-} = ctx;
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [dropdownRef, setDropdownOpen]);
 
-return (
-<div ref={dropdownRef} style={{ position: "relative" }}>
-<button
-onClick={() => setDropdownOpen((prev) => !prev)}
-title="Notifications"
-style={{ background: dropdownOpen ? "rgba(255,255,255,0.15)" : "transparent", border: "none", borderRadius: 8, padding: "6px 8px", cursor: "pointer", position: "relative", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", transition: "background 0.15s", width: 36, height: 36 }}>
-<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-<path d="M13.73 21a2 2 0 0 1-3.46 0" />
-</svg>
-{unreadCount > 0 && (
-<span style={{ position: "absolute", top: 2, right: 2, background: "#ef4444", color: "#fff", borderRadius: "50%", width: 16, height: 16, fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center", border: "1.5px solid #212529" }}>
-{unreadCount > 9 ? "9+" : unreadCount}
-</span>
-)}
-</button>
+  return (
+    <div ref={dropdownRef} className="position-relative">
+      <button 
+        onClick={() => setDropdownOpen(!dropdownOpen)} 
+        className="btn-bell shadow-none"
+        style={{ background: dropdownOpen ? 'rgba(255,255,255,0.15)' : 'transparent' }}
+      >
+        <Bell size={20} strokeWidth={2.5} />
+        {unreadCount > 0 && <span className="bell-dot">{unreadCount > 9 ? '9+' : unreadCount}</span>}
+      </button>
 
-{dropdownOpen && (
-<div style={{ position: "fixed", left: 258, width: 340, background: "#fff", borderRadius: 14, boxShadow: "0 16px 48px rgba(0,0,0,0.22)", zIndex: 99998, overflow: "hidden", animation: "bellFadeIn 0.18s ease" }}>
-<div style={{ padding: "14px 16px 10px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-<div style={{ fontWeight: 700, fontSize: 15, color: "#1e293b", display: "flex", alignItems: "center", gap: 8 }}>
-Notifications
-{unreadCount > 0 && (
-<span style={{ background: "#ef4444", color: "#fff", borderRadius: 20, padding: "1px 8px", fontSize: 11 }}>
-{unreadCount}
-</span>
-)}
-</div>
-<div style={{ display: "flex", gap: 8 }}>
-{unreadCount > 0 && (
-<button onClick={markAllRead} style={{ fontSize: 11, color: "#4f46e5", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
-Mark all read
-</button>
-)}
-{notifications.length > 0 && (
-<button onClick={clearAll} style={{ fontSize: 11, color: "#ef4444", background: "none", border: "none", cursor: "pointer", fontWeight: 600 }}>
-Clear all
-</button>
-)}
-</div>
-</div>
+      {dropdownOpen && (
+        <div className="notif-panel shadow-lg">
+          <div className="panel-header">
+            <div>
+              <h6 className="fw-bold mb-0">Notifications</h6>
+              <p className="text-muted small mb-0">{unreadCount} unread</p>
+            </div>
+            <div className="d-flex gap-2">
+              {unreadCount > 0 && <button onClick={markAllRead} className="action-btn text-primary"><CheckCheck size={14}/> Read all</button>}
+              {notifications.length > 0 && <button onClick={clearAll} className="action-btn text-danger"><Trash size={14}/> Clear</button>}
+            </div>
+          </div>
+          
+          <div className="panel-list">
+            {notifications.length === 0 ? (
+              <div className="empty-notif">
+                <Bell size={32} strokeWidth={1} />
+                <p>No notifications yet</p>
+              </div>
+            ) : (
+              notifications.map((n) => {
+                const cfg = TYPE_CONFIG[n.type] || TYPE_CONFIG.default;
+                return (
+                  <div key={n.notification_id} onClick={() => markAsRead(n.notification_id)} className={`list-item ${!n.is_read ? 'unread' : ''}`}>
+                    <div className="item-icon" style={{ background: `${cfg.color}15`, color: cfg.color }}>
+                      {cfg.icon}
+                    </div>
+                    <div className="item-content">
+                      <div className="item-msg">{n.message}</div>
+                      <div className="item-time"><Clock size={10} /> {formatTime(n.created_at)}</div>
+                    </div>
+                    {!n.is_read && <div className="unread-status"></div>}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
 
-<div style={{ maxHeight: 400, overflowY: "auto" }}>
-{notifications.length === 0 ? (
-<div style={{ textAlign: "center", padding: "32px 16px", color: "#94a3b8" }}>
-<div style={{ fontSize: 36, marginBottom: 8 }}>--</div>
-<div style={{ fontSize: 13 }}>No notifications yet</div>
-</div>
-) : (
-notifications.map((n) => (
-<div key={n.notification_id}
-onClick={() => markAsRead(n.notification_id)}
-style={{ padding: "11px 16px", background: n.is_read ? "#fff" : "#f0f4ff", borderBottom: "1px solid #f8fafc", cursor: "pointer", display: "flex", gap: 10, alignItems: "flex-start" }}
-onMouseEnter={(e) => (e.currentTarget.style.background = "#f8fafc")}
-onMouseLeave={(e) => (e.currentTarget.style.background = n.is_read ? "#fff" : "#f0f4ff")}>
-<div style={{ width: 34, height: 34, borderRadius: "50%", flexShrink: 0, background: `${TYPE_COLORS[n.type] || "#4f46e5"}18`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>
-{TYPE_ICONS[n.type] || "!"}
-</div>
-<div style={{ flex: 1, minWidth: 0 }}>
-<div style={{ fontSize: 13, color: "#1e293b", lineHeight: 1.45, fontWeight: n.is_read ? 400 : 600 }}>
-{n.message}
-</div>
-<div style={{ fontSize: 11, color: "#94a3b8", marginTop: 3 }}>
-{formatTime(n.created_at)}
-</div>
-</div>
-{!n.is_read && (
-<div style={{ width: 8, height: 8, borderRadius: "50%", background: "#4f46e5", flexShrink: 0, marginTop: 5 }} />
-)}
-</div>
-))
-)}
-</div>
-</div>
-)}
-</div>
-);
+      <style>{`
+        .btn-bell {
+          background: transparent; border: none; color: white; padding: 8px;
+          border-radius: 10px; position: relative; display: flex; align-items: center; transition: 0.2s;
+        }
+        .btn-bell:hover { background: rgba(255,255,255,0.1); }
+        .bell-dot {
+          position: absolute; top: 4px; right: 4px; background: #ef4444; color: white;
+          font-size: 9px; font-weight: 800; padding: 2px 5px; border-radius: 10px; border: 2px solid #1e293b;
+        }
+
+        .notif-panel {
+          position: absolute; top: 50px; right: 0; width: 340px; background: white;
+          border-radius: 16px; border: 1px solid #e2e8f0; z-index: 9999; overflow: hidden;
+          animation: panelIn 0.2s ease-out;
+        }
+        .panel-header { padding: 14px 16px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .action-btn { background: none; border: none; font-size: 11px; font-weight: 700; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        .panel-list { max-height: 380px; overflow-y: auto; }
+        
+        .list-item { padding: 12px 16px; display: flex; gap: 12px; align-items: flex-start; border-bottom: 1px solid #f8fafc; cursor: pointer; transition: 0.2s; }
+        .list-item:hover { background: #f8fafc; }
+        .list-item.unread { background: #f0f7ff; }
+        
+        .item-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .item-content { flex: 1; min-width: 0; }
+        .item-msg { font-size: 13px; color: #1e293b; line-height: 1.4; margin-bottom: 2px; }
+        .item-time { font-size: 11px; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
+        .unread-status { width: 8px; height: 8px; border-radius: 50%; background: #4f46e5; margin-top: 6px; }
+
+        .empty-notif { padding: 40px 20px; text-align: center; color: #cbd5e1; }
+        .empty-notif p { font-size: 13px; margin-top: 8px; color: #94a3b8; }
+
+        @keyframes panelIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 768px) {
+          .notif-panel {
+            position: fixed;
+            top: 70px;
+            left: 10px;
+            right: 10px;
+            width: auto;
+          }
+        }
+      `}</style>
+    </div>
+  );
 }

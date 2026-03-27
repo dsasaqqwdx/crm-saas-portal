@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../../../layouts/Sidebar";
-import { Clock, Calendar, FileText, Star } from "lucide-react";
+import { PageContent } from "../../../layouts/usePageLayout";
+import { Clock, Calendar, FileText, Star, ArrowRight, UserCheck, Coffee } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ChatbotWidget from "../../../components/ChatbotWidget";
@@ -45,24 +46,18 @@ const EmployeeDashboard = () => {
   }, []);
 
   const stats = [
-    { title: "Attendance Today", val: statsData.attendanceToday, icon: <Clock size={20} />, color: "success" },
-    { title: "Leave Balance", val: statsData.leaveBalance, icon: <Calendar size={20} />, color: "primary" },
-    { title: "Upcoming Holidays", val: statsData.upcomingHolidays, icon: <Star size={20} />, color: "warning" },
-    {
-      title: "Payslips available",
-      val: statsData.payslipsCount,
-      icon: <FileText size={20} />,
-      color: "info",
-      isClickable: true
-    }
+    { title: "Attendance", val: statsData.attendanceToday, icon: <Clock size={22} />, color: "#10b981", bg: "#ecfdf5", link: "/employee/attendance" },
+    { title: "Leave Balance", val: statsData.leaveBalance, icon: <Calendar size={22} />, color: "#6366f1", bg: "#eef2ff", link: "/employee/leaves" },
+    { title: "Holidays", val: statsData.upcomingHolidays, icon: <Star size={22} />, color: "#f59e0b", bg: "#fffbeb", link: "/employee/holidays" },
+    { title: "Payslips", val: statsData.payslipsCount, icon: <FileText size={22} />, color: "#3b82f6", bg: "#eff6ff", link: "/employee/payroll" }
   ];
 
   if (loading) {
     return (
       <div className="d-flex bg-light min-vh-100 align-items-center justify-content-center">
         <div className="text-center">
-          <div className="spinner-border text-primary mb-2"></div>
-          <p className="text-muted fw-bold">Loading your dashboard...</p>
+          <div className="spinner-border text-primary mb-3" style={{ width: "3rem", height: "3rem" }}></div>
+          <p className="text-muted fw-bold">Syncing your workspace...</p>
         </div>
       </div>
     );
@@ -71,41 +66,116 @@ const EmployeeDashboard = () => {
   return (
     <div className="d-flex bg-light min-vh-100">
       <Sidebar />
+      <PageContent>
+        <div className="container-fluid px-3 px-md-4 py-4">
+          
+          <div className="mb-4 pt-2">
+            <h2 className="fw-bold fs-2 mb-1" style={{ color: "#0f172a", letterSpacing: "-1px" }}>
+              Welcome back, {localStorage.getItem("name") || "Employee"}! 👋
+            </h2>
+            <p className="text-muted">
+              Here's a quick overview of your profile and performance for today.
+            </p>
+          </div>
 
-      <div className="container-fluid p-4" style={{ marginLeft: "250px" }}>
-        
-        <div className="mb-4">
-          <h2 className="fw-bold">
-            Welcome back, {localStorage.getItem("name") || "Employee"}!
-          </h2>
-          <p className="text-muted">
-            Here's what's happening with your profile today.
-          </p>
-        </div>
-        <div className="row g-3 mb-4">
-          {stats.map((stat, idx) => (
-            <div key={idx} className="col-md-6 col-lg-3">
-              <div
-                className={`card shadow-sm border-0 h-100 ${stat.isClickable ? 'cursor-pointer' : ''}`}
-                onClick={() => stat.isClickable && navigate("/employee/payroll")}
-                style={{ cursor: stat.isClickable ? 'pointer' : 'default' }}
-              >
-                <div className="card-body d-flex align-items-center">
-                  <div className={`bg-${stat.color} text-white p-3 rounded me-3`}>
-                    {stat.icon}
+          <div className="row g-3 mb-4">
+            {stats.map((stat, idx) => (
+              <div key={idx} className="col-12 col-sm-6 col-xl-3">
+                <div 
+                  className="card border-0 shadow-sm rounded-4 h-100 p-2 hover-card"
+                  onClick={() => navigate(stat.link)}
+                  style={{ cursor: "pointer", transition: "transform 0.2s" }}
+                >
+                  <div className="card-body d-flex align-items-center">
+                    <div 
+                      className="rounded-3 d-flex align-items-center justify-content-center me-3" 
+                      style={{ width: "56px", height: "56px", backgroundColor: stat.bg, color: stat.color }}
+                    >
+                      {stat.icon}
+                    </div>
+                    <div>
+                      <p className="text-muted small fw-bold text-uppercase mb-1" style={{ letterSpacing: "0.5px" }}>{stat.title}</p>
+                      <h4 className="fw-bold mb-0" style={{ color: "#1e293b" }}>{stat.val}</h4>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-muted small mb-1">{stat.title}</p>
-                    <h5 className="fw-bold mb-0">{stat.val}</h5>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="row g-4">
+            <div className="col-12 col-lg-8">
+              <div className="bg-white rounded-4 border shadow-sm p-4 h-100">
+                <h5 className="fw-bold mb-4 d-flex align-items-center gap-2">
+                  <UserCheck size={20} className="text-primary" /> Quick Actions
+                </h5>
+                <div className="row g-3">
+                  <div className="col-6 col-md-4">
+                    <button 
+                      className="btn btn-light w-100 py-3 rounded-4 border-0 d-flex flex-column align-items-center gap-2"
+                      onClick={() => navigate("/employee/attendance")}
+                      style={{ background: "#f8fafc" }}
+                    >
+                      <Clock className="text-success" />
+                      <span className="small fw-bold">Clock In/Out</span>
+                    </button>
+                  </div>
+                  <div className="col-6 col-md-4">
+                    <button 
+                      className="btn btn-light w-100 py-3 rounded-4 border-0 d-flex flex-column align-items-center gap-2"
+                      onClick={() => navigate("/employee/leaves")}
+                      style={{ background: "#f8fafc" }}
+                    >
+                      <Calendar className="text-primary" />
+                      <span className="small fw-bold">Request Leave</span>
+                    </button>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <button 
+                      className="btn btn-light w-100 py-3 rounded-4 border-0 d-flex flex-column align-items-center gap-2"
+                      onClick={() => navigate("/employee/payroll")}
+                      style={{ background: "#f8fafc" }}
+                    >
+                      <FileText className="text-info" />
+                      <span className="small fw-bold">View Payslips</span>
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
 
-      </div>
+            <div className="col-12 col-lg-4">
+              <div className="bg-primary text-white rounded-4 shadow-sm p-4 h-100 position-relative overflow-hidden">
+                <div style={{ position: "absolute", right: "-20px", bottom: "-20px", opacity: 0.2 }}>
+                  <Coffee size={120} />
+                </div>
+                <h5 className="fw-bold mb-3">Holiday Spirit</h5>
+                <p className="small mb-4 opacity-75">Check out the upcoming holiday calendar to plan your next break!</p>
+                <button 
+                  className="btn btn-white btn-sm fw-bold rounded-pill px-3 py-2"
+                  style={{ background: "rgba(255,255,255,0.2)", border: "1px solid #fff", color: "#fff" }}
+                  onClick={() => navigate("/employee/holidays")}
+                >
+                  View Calendar <ArrowRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </PageContent>
       <ChatbotWidget />
+
+      <style>{`
+        .hover-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+        }
+        .btn-white:hover {
+          background: #fff !important;
+          color: #4f46e5 !important;
+        }
+      `}</style>
     </div>
   );
 };

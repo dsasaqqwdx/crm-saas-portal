@@ -1,12 +1,8 @@
+
 const pool = require('../../config/db');
 
 exports.createCompany = async (req, res) => {
     const { company_name, pricing_plan } = req.body;
-    
-    if (req.user.role !== 'software_owner' && req.user.role !== 'super_admin') {
-        return res.status(403).json({ msg: 'Not authorized to create companies' });
-    }
-
     try {
         const result = await pool.query(
             'INSERT INTO companies (company_name, pricing_plan) VALUES ($1, $2) RETURNING *',
@@ -49,6 +45,7 @@ exports.getGlobalSummary = async (req, res) => {
         res.status(500).json({ error: "Server error while fetching global summary" });
     }
 };
+
 exports.getAllUsers = async (req, res) => {
     try {
         const result = await pool.query(`
@@ -61,5 +58,30 @@ exports.getAllUsers = async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error while fetching users" });
+    }
+};
+
+exports.deleteCompany = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(
+            'DELETE FROM companies WHERE company_id = $1 RETURNING *',
+            [id]
+        );
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ success: false, message: "Company not found" });
+        }
+
+        res.status(200).json({ success: true, message: "Company deleted successfully" });
+    } catch (err) {
+        console.error(err.message);
+        if (err.code === '23503') {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Cannot delete: Users are still linked to this company." 
+            });
+        }
+        res.status(500).json({ error: "Server error while deleting company" });
     }
 };

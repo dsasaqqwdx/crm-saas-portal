@@ -30,6 +30,11 @@ const attachmentRoutes   = require("./modules/support/attachmentRoutes");
 const adminProfileRoutes = require("./routes/AdminProfile");
 
 const path = require("path");
+const superAdminProfileRoutes = require("./routes/superAdminProfileRoutes");
+const letterRoutes = require("./routes/letterRoutes");
+app.use("/api/letters", letterRoutes);
+
+app.use("/api/super-admin", superAdminProfileRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/attachments",     attachmentRoutes);
 app.use("/api/transactions",    require("./modules/transactions/transactionRoutes"));
