@@ -3,8 +3,6 @@ const router = express.Router();
 const pool = require("../../config/db");
 const verifyToken = require("../../middleware/authMiddleware");
 const checkRole = require("../../middleware/roleCheck");
-
-
 router.get("/", verifyToken, async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -18,8 +16,6 @@ router.get("/", verifyToken, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 router.get("/:id", verifyToken, async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -36,8 +32,6 @@ router.get("/:id", verifyToken, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 router.post("/", verifyToken, checkRole(["company_admin"]), async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -45,8 +39,6 @@ router.post("/", verifyToken, checkRole(["company_admin"]), async (req, res) => 
 
     if (!department_name || department_name.trim() === "")
       return res.status(400).json({ success: false, message: "Department name is required" });
-
-    // Check for duplicate
     const exists = await pool.query(
       "SELECT 1 FROM departments WHERE LOWER(department_name) = LOWER($1) AND company_id = $2",
       [department_name.trim(), company_id]
@@ -64,8 +56,6 @@ router.post("/", verifyToken, checkRole(["company_admin"]), async (req, res) => 
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
 router.put("/:id", verifyToken, checkRole(["company_admin"]), async (req, res) => {
   try {
     const { company_id } = req.user;
@@ -96,8 +86,6 @@ router.put("/:id", verifyToken, checkRole(["company_admin"]), async (req, res) =
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-// DELETE department (Admin only)
 router.delete("/:id", verifyToken, checkRole(["company_admin"]), async (req, res) => {
   try {
     const { company_id } = req.user;

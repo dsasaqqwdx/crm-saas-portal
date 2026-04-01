@@ -28,11 +28,15 @@ const designationRoutes  = require("./routes/designations");
 const planRoutes         = require("./modules/saas/planRoutes");
 const attachmentRoutes   = require("./modules/support/attachmentRoutes");
 const adminProfileRoutes = require("./routes/AdminProfile");
-
+const appreciationsRouter = require("./routes/appreciations");
+app.use("/api/appreciations", appreciationsRouter);
 const path = require("path");
 const superAdminProfileRoutes = require("./routes/superAdminProfileRoutes");
 const letterRoutes = require("./routes/letterRoutes");
 app.use("/api/letters", letterRoutes);
+const appreciationRoutes = require('./routes/appreciations');
+app.use('/api/appreciations', appreciationRoutes);
+app.use('/api/employees', employeeRoutes);
 
 app.use("/api/super-admin", superAdminProfileRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -47,13 +51,16 @@ app.use("/api/website-settings",require("./modules/websiteSettings/websiteSettin
 app.use("/api/admin", adminProfileRoutes);
 app.use('/api/auth',        authRoutes);
 app.use('/api/dashboard',   dashboardRoutes);
-app.use('/api/employees',   employeeRoutes);
+
 app.use('/api/attendance',  attendanceRoutes);
 app.use('/api/holidays',    holidayRoutes);
 app.use('/api/leaves',      leaveRoutes);
 app.use('/api/payroll',     payrollRoutes);
 app.use('/api/saas',        saasRoutes);
 app.use("/api/departments", departmentRoutes);
+app.use("/uploads", express.static("uploads"));
+const policyRoutes = require("./modules/policies/policyRoutes");
+app.use("/api/policies", policyRoutes);
 
 app.use((err, req, res, next) => {
   console.error("GLOBAL ERROR:", err.stack);

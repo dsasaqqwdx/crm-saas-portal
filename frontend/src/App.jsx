@@ -29,7 +29,10 @@ import Designations from './roles/Designations';
 import './styles/responsive.css';
 import LetterHeads from "./pages/admin/letters/LetterHeads";
 import EmployeeLetters from "./pages/employee/letters/EmployeeLetters.jsx";
-
+import AdminAppreciationPage from "./pages/admin/appreciation/AdminAppreciationPage";
+import EmployeeAppreciationPage from "./pages/employee/appreciation/EmployeeAppreciationPage";
+import AdminPoliciesPage from "./roles/Admin/policies/PoliciesPage";
+import EmployeePoliciesPage from "./roles/Employee/policies/PoliciesPage";
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem("token");
   const role = localStorage.getItem("role");
@@ -66,7 +69,17 @@ function App() {
  <WebsiteSettingsPage />
  </ProtectedRoute>
         } />
+<Route path="/admin/appreciation" element={
+  <ProtectedRoute allowedRoles={['company_admin']}>
+    <AdminAppreciationPage />
+  </ProtectedRoute>
+} />
 
+<Route path="/employee/appreciation" element={
+  <ProtectedRoute allowedRoles={['employee']}>
+    <EmployeeAppreciationPage />
+  </ProtectedRoute>
+} />
         <Route path="/superadmin/companiespage" element={
           <ProtectedRoute allowedRoles={['super_admin', 'software_owner']}>
             <CompaniesPage />
@@ -156,6 +169,23 @@ function App() {
             <Leaves />
           </ProtectedRoute>
         } />
+        <Route
+  path="/admin/policies"
+  element={
+    <ProtectedRoute allowedRoles={["company_admin"]}>
+      <AdminPoliciesPage />
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/employee/policies"
+  element={
+    <ProtectedRoute allowedRoles={["employee"]}>
+      <EmployeePoliciesPage />
+    </ProtectedRoute>
+  }
+/>
 <Route path="/super-admin" element={<SuperAdminProfile />} />
 <Route path="/payments" element={<AdminPaymentsPage />} />
         <Route path="*" element={<Navigate to="/" />} />

@@ -1,144 +1,111 @@
+
 import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { NotificationBell, useNotifications } from "../context/NotificationContext";
 import logo from "../assets/logo.png";
-// All icons merged into one single import block
-import {
-  LayoutDashboard, UserPlus, Clock, Palmtree, CalendarRange,
-  Wallet, LogOut, Building2, CreditCard, HeadphonesIcon,
-  UserCog, Globe, Menu, ChevronLeft, X, FileText, Mail
-} from "lucide-react";
+import { LayoutDashboard, UserPlus, Clock, Palmtree, CalendarRange, Wallet, LogOut, Building2, CreditCard, HeadphonesIcon, UserCog, Globe, Menu, ChevronLeft, X, FileText, Mail, Heart, Award } from "lucide-react";
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
-  const role = localStorage.getItem("role");
-
-  // Get the actual count from your notification context
-  const { unreadCount } = useNotifications();
+  const role = localStorage.getItem("role") || "";
+  const { unreadCount, unreadAppCount } = useNotifications();
 
   useEffect(() => {
-    const checkMobile = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (mobile) setIsOpen(false);
-      else setMobileOpen(false);
-    };
+    const checkMobile = () => { const mobile = window.innerWidth < 768; setIsMobile(mobile); if (mobile) setIsOpen(false); else setMobileOpen(false); };
     checkMobile();
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
 
   const allItems = [
-    { name: "Admin Dashboard",     path: "/dashboard",                 icon: <LayoutDashboard size={18} />, roles: ["company_admin"] },
-    { name: "Super Control Panel", path: "/superadmin-dashboard",         icon: <LayoutDashboard size={18} />, roles: ["super_admin", "software_owner"] },
-    { name: "My Dashboard",         path: "/employee-dashboard",           icon: <LayoutDashboard size={18} />, roles: ["employee"] },
-    { name: "Add Employee",         path: "/add-employee",                 icon: <UserPlus size={18} />,         roles: ["company_admin"] },
-    { name: "Employee Attendance", path: "/admin-attendance",             icon: <Clock size={18} />,           roles: ["company_admin"] },
-    { name: "My Attendance",       path: "/attendance",                   icon: <Clock size={18} />,           roles: ["employee"] },
-    { name: "Holidays",             path: "/holidays",                     icon: <Palmtree size={18} />,         roles: ["company_admin", "employee"] },
-    { name: "Leaves",               path: "/leaves",                       icon: <CalendarRange size={18} />,   roles: ["company_admin", "employee"] },
-    { name: "Payroll",             path: "/payroll",                     icon: <Wallet size={18} />,           roles: ["company_admin"] },
-    { name: "Departments",         path: "/departments",                 icon: <Building2 size={18} />,       roles: ["company_admin"] },
-    { name: "Designations",         path: "/designations",                 icon: <UserPlus size={18} />,         roles: ["company_admin"] },
-    { name: "Profile",             path: "/admin/profile",               icon: <UserCog size={18} />,         roles: ["company_admin"] },
-    { name: "Transactions",         path: "/transactions",                 icon: <CreditCard size={18} />,       roles: ["super_admin", "software_owner"] },
-    { name: "Companies",           path: "/superadmin/companiespage",     icon: <Building2 size={18} />,       roles: ["super_admin", "software_owner"] },
-    { name: "Add Super Admin",     path: "/add-superadmin",               icon: <UserCog size={18} />,         roles: ["super_admin", "software_owner"] },
-    { name: "Pricing Plans",       path: "/superadmin/pricing",           icon: <CreditCard size={18} />,       roles: ["super_admin", "software_owner"] },
-    { name: "Website Settings",     path: "/superadmin/website-settings", icon: <Globe size={18} />,           roles: ["super_admin", "software_owner"] },
-    { name: "Support",             path: "/support",                     icon: <HeadphonesIcon size={18} />,   roles: ["company_admin", "software_owner", "super_admin"] },
-    { name: "Profile",             path: "/super-admin",                 icon: <UserCog size={18} />,         roles: ["super_admin"] },
-    { name: "Payments",             path: "/payments",                     icon: <CreditCard size={18} />,       roles: ["company_admin"] },
-    { name: "LetterHeads",          path: "/admin/letters",                icon: <FileText size={18} />,         roles: ["company_admin", "software_owner", "super_admin"] },
-    { name: "My Letters",           path: "/employee/my-letters",          icon: <Mail size={18} />,             roles: ["employee"], badge: unreadCount },
+    { name:"Admin Dashboard",      path:"/dashboard",                   icon:<LayoutDashboard size={18}/>, roles:["company_admin"] },
+    { name:"Super Control Panel",  path:"/superadmin-dashboard",        icon:<LayoutDashboard size={18}/>, roles:["super_admin","software_owner"] },
+    { name:"My Dashboard",         path:"/employee-dashboard",          icon:<LayoutDashboard size={18}/>, roles:["employee"] },
+    { name:"Add Employee",         path:"/add-employee",                icon:<UserPlus size={18}/>,        roles:["company_admin"] },
+    { name:"Employee Attendance",  path:"/admin-attendance",            icon:<Clock size={18}/>,           roles:["company_admin"] },
+    { name:"My Attendance",        path:"/attendance",                  icon:<Clock size={18}/>,           roles:["employee"] },
+    { name:"Holidays",             path:"/holidays",                    icon:<Palmtree size={18}/>,        roles:["company_admin","employee"] },
+    { name:"Leaves",               path:"/leaves",                      icon:<CalendarRange size={18}/>,   roles:["company_admin","employee"] },
+    { name:"Payroll",              path:"/payroll",                     icon:<Wallet size={18}/>,          roles:["company_admin"] },
+    { name:"Departments",          path:"/departments",                 icon:<Building2 size={18}/>,       roles:["company_admin"] },
+    { name:"Designations",         path:"/designations",                icon:<UserPlus size={18}/>,        roles:["company_admin"] },
+    { name:"Profile",              path:"/admin/profile",               icon:<UserCog size={18}/>,         roles:["company_admin"] },
+    { name:"Transactions",         path:"/transactions",                icon:<CreditCard size={18}/>,      roles:["super_admin","software_owner"] },
+    { name:"Companies",            path:"/superadmin/companiespage",    icon:<Building2 size={18}/>,       roles:["super_admin","software_owner"] },
+    { name:"Add Super Admin",      path:"/add-superadmin",              icon:<UserCog size={18}/>,         roles:["super_admin","software_owner"] },
+    { name:"Pricing Plans",        path:"/superadmin/pricing",          icon:<CreditCard size={18}/>,      roles:["super_admin","software_owner"] },
+    { name:"Website Settings",     path:"/superadmin/website-settings", icon:<Globe size={18}/>,           roles:["super_admin","software_owner"] },
+    { name:"Support",              path:"/support",                     icon:<HeadphonesIcon size={18}/>,  roles:["company_admin","software_owner","super_admin"] },
+    { name:"Profile",              path:"/super-admin",                 icon:<UserCog size={18}/>,         roles:["super_admin"] },
+    { name:"Payments",             path:"/payments",                    icon:<CreditCard size={18}/>,      roles:["company_admin"] },
+    { name:"LetterHeads",          path:"/admin/letters",               icon:<FileText size={18}/>,        roles:["company_admin"] },
+    { name:"Appreciations",        path:"/admin/appreciation",          icon:<Heart size={18}/>,           roles:["company_admin"] },
+    { name:"My Letters",           path:"/employee/my-letters",         icon:<Mail size={18}/>,            roles:["employee"], badge:unreadCount },
+    { name:"My Appreciations",     path:"/employee/appreciation",       icon:<Award size={18}/>,           roles:["employee"], badge:unreadAppCount },
+    {
+  name: "Company Policies",
+  path: "/admin/policies",
+  icon: <FileText size={18} />,  
+  roles: ["company_admin"]
+},
+{
+  name: "Company Policies",
+  path: "/employee/policies", 
+  icon: <FileText size={18} />,    
+  roles: ["employee"]
+}
   ];
 
-  const menuItems = allItems.filter(item => item.roles.includes(role));
+  const menuItems = allItems.filter(item => item.roles && item.roles.includes(role));
   const handleLogout = () => { localStorage.clear(); window.location.href = "/"; };
-
   const sidebarWidth = isMobile ? "260px" : (isOpen ? "250px" : "72px");
   const showLabels = isMobile ? true : isOpen;
 
   const sidebarContent = (
-    <div
-      className="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white shadow"
-      style={{
-        width: sidebarWidth,
-        height: "100vh",
-        position: "fixed",
-        zIndex: 1050,
-        overflowY: "auto",
-        overflowX: "hidden",
-        left: isMobile ? (mobileOpen ? 0 : "-260px") : 0,
-        top: 0,
-        transition: "width 0.3s ease, left 0.3s ease", // Fixed duplicate key error here
-      }}
-    >
+    <div className="d-flex flex-column flex-shrink-0 p-3 bg-dark text-white shadow"
+      style={{ width:sidebarWidth,height:"100vh",position:"fixed",zIndex:1050,overflowY:"auto",overflowX:"hidden",left:isMobile?(mobileOpen?0:"-260px"):0,top:0,transition:"width 0.3s ease, left 0.3s ease" }}>
+
       <div className="d-flex align-items-center justify-content-between mb-3">
         <div className={`d-flex align-items-center ${!showLabels && "justify-content-center w-100"}`}>
-          <img
-            src={logo}
-            alt="logo"
-            style={{ width: 36, height: 36, borderRadius: 10, objectFit: "cover", background: "#fff", padding: 2, flexShrink: 0 }}
-          />
+          <img src={logo} alt="logo" style={{ width:36,height:36,borderRadius:10,objectFit:"cover",background:"#fff",padding:2,flexShrink:0 }}/>
           {showLabels && <span className="ms-2 fs-5 fw-bold">Shnoor</span>}
         </div>
-        
         {isMobile ? (
-          <button className="btn btn-sm btn-outline-light border-0 p-1" onClick={() => setMobileOpen(false)}>
-            <X size={20} />
-          </button>
+          <button className="btn btn-sm btn-outline-light border-0 p-1" onClick={() => setMobileOpen(false)}><X size={20}/></button>
         ) : (
-          showLabels && (
-            <button className="btn btn-sm btn-outline-light border-0 p-1" onClick={() => setIsOpen(false)}>
-              <ChevronLeft size={20} />
-            </button>
-          )
+          showLabels && <button className="btn btn-sm btn-outline-light border-0 p-1" onClick={() => setIsOpen(false)}><ChevronLeft size={20}/></button>
         )}
       </div>
 
       {!isMobile && !isOpen && (
-        <button className="btn btn-sm btn-outline-light border-0 mb-3 w-100 d-flex justify-content-center" onClick={() => setIsOpen(true)}>
-          <Menu size={20} />
-        </button>
+        <button className="btn btn-sm btn-outline-light border-0 mb-3 w-100 d-flex justify-content-center" onClick={() => setIsOpen(true)}><Menu size={20}/></button>
       )}
 
       {showLabels && role !== "super_admin" && (
         <div className="px-2 pt-1 pb-1 d-flex align-items-center justify-content-between mb-2">
-          <span style={{ fontSize: "0.75rem", color: "#6c757d" }}>Notifications</span>
-          <NotificationBell />
+          <span style={{ fontSize:"0.75rem",color:"#6c757d" }}>Notifications</span>
+          <NotificationBell/>
         </div>
       )}
 
       <ul className="nav nav-pills flex-column mb-auto">
-        {menuItems.map((item) => {
+        {menuItems.map(item => {
           const isActive = location.pathname === item.path;
           return (
             <li key={item.path} className="nav-item mb-1">
-              <Link
-                to={item.path}
-                className={`nav-link d-flex align-items-center py-2 px-3 rounded-3 ${
-                  isActive ? "active bg-primary text-white shadow-sm" : "text-white-50"
-                } ${!showLabels && "justify-content-center"}`}
+              <Link to={item.path}
+                className={`nav-link d-flex align-items-center py-2 px-3 rounded-3 ${isActive?"active bg-primary text-white shadow-sm":"text-white-50"} ${!showLabels&&"justify-content-center"}`}
                 title={!showLabels ? item.name : ""}
-                style={{ transition: "all 0.15s", position: "relative" }}
-              >
+                style={{ transition:"all 0.15s",position:"relative" }}>
                 <span className={showLabels ? "me-3" : ""}>{item.icon}</span>
-                {showLabels && <span style={{ fontSize: "0.9rem", whiteSpace: "nowrap" }}>{item.name}</span>}
-                
-                {/* Visual badge for "My Letters" */}
+                {showLabels && <span style={{ fontSize:"0.9rem",whiteSpace:"nowrap" }}>{item.name}</span>}
                 {item.badge > 0 && (
-                  <span 
-                    className="badge bg-danger rounded-pill position-absolute" 
-                    style={{ top: "8px", right: "12px", fontSize: "10px" }}
-                  >
+                  <span className="badge bg-danger rounded-pill position-absolute" style={{ top:"8px",right:"12px",fontSize:"10px" }}>
                     {item.badge}
                   </span>
                 )}
@@ -151,17 +118,12 @@ const Sidebar = () => {
       <div className="mt-auto pt-3 px-1 border-top border-secondary">
         {showLabels && (
           <>
-            <div className="small text-muted mb-0" style={{ fontSize: "0.75rem" }}>Account</div>
-            <div className="fw-semibold text-truncate mb-3" style={{ fontSize: "0.9rem" }}>
-              {localStorage.getItem("name") || "Administrator"}
-            </div>
+            <div className="small text-muted mb-0" style={{ fontSize:"0.75rem" }}>Account</div>
+            <div className="fw-semibold text-truncate mb-3" style={{ fontSize:"0.9rem" }}>{localStorage.getItem("name") || "Administrator"}</div>
           </>
         )}
-        <button
-          className="btn btn-outline-danger w-100 d-flex align-items-center py-2 border-0 bg-danger bg-opacity-10 justify-content-center"
-          onClick={handleLogout}
-        >
-          <LogOut size={16} className={showLabels ? "me-2" : ""} />
+        <button className="btn btn-outline-danger w-100 d-flex align-items-center py-2 border-0 bg-danger bg-opacity-10 justify-content-center" onClick={handleLogout}>
+          <LogOut size={16} className={showLabels ? "me-2" : ""}/>
           {showLabels && <span className="fw-bold">Logout</span>}
         </button>
       </div>
@@ -171,34 +133,15 @@ const Sidebar = () => {
   return (
     <>
       {isMobile && (
-        <div
-          style={{
-            position: "fixed", top: 0, left: 0, right: 0, zIndex: 1040,
-            background: "#212529", padding: "10px 16px",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-          }}
-        >
-          <button className="btn btn-sm btn-outline-light border-0" onClick={() => setMobileOpen(true)}>
-            <Menu size={22} />
-          </button>
-          <div className="d-flex align-items-center gap-2">
-            <span className="text-white fw-bold" style={{ fontSize: "1rem" }}>Shnoor</span>
-          </div>
-          <div style={{ width: 36 }} />
+        <div style={{ position:"fixed",top:0,left:0,right:0,zIndex:1040,background:"#212529",padding:"10px 16px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"0 2px 8px rgba(0,0,0,0.3)" }}>
+          <button className="btn btn-sm btn-outline-light border-0" onClick={() => setMobileOpen(true)}><Menu size={22}/></button>
+          <div className="d-flex align-items-center gap-2"><span className="text-white fw-bold" style={{ fontSize:"1rem" }}>Shnoor</span></div>
+          <div style={{ width:36 }}/>
         </div>
       )}
-
       {isMobile && mobileOpen && (
-        <div
-          onClick={() => setMobileOpen(false)}
-          style={{
-            position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)",
-            zIndex: 1045, backdropFilter: "blur(2px)",
-          }}
-        />
+        <div onClick={() => setMobileOpen(false)} style={{ position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:1045,backdropFilter:"blur(2px)" }}/>
       )}
-
       {sidebarContent}
     </>
   );

@@ -5,7 +5,7 @@ import {
 MessageCircle, X, Send, RefreshCw,
 Paperclip, Download, FileText, Image,
 History, Plus, ChevronLeft, Clock,
-MessageSquare, Loader, PhoneCall, Trash2
+MessageSquare, Loader, PhoneCall, Trash2, Pencil
 } from "lucide-react";
 
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
@@ -70,7 +70,6 @@ return (b / 1048576).toFixed(1) + " MB";
 };
 
 const isImgType = (ft) => ft && ft.startsWith("image/");
-
 const fmt = (iso) => new Date(iso).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 
 const fmtDate = (iso) => {
@@ -170,10 +169,14 @@ const [uploading, setUploading] = useState(false);
 const [reactions, setReactions] = useState({});
 const [emojiPicker, setEmojiPicker] = useState(null);
 const [contextMenu, setContextMenu] = useState(null);
+const [editingMsg, setEditingMsg] = useState(null);
+const [editContent, setEditContent] = useState("");
+const [editSaving, setEditSaving] = useState(false);
 
 const messagesEndRef = useRef(null);
 const inputRef = useRef(null);
 const fileInputRef = useRef(null);
+const editInputRef = useRef(null);
 const currentUserId = getUserId();
 
 const fetchTickets = useCallback(async () => {
@@ -225,7 +228,7 @@ const ticket = (res.data.data || []).find(t => t.ticket_id === activeTicketId);
 if (!ticket) return;
 const init = safeArr(ticket.messages)
 .filter(m => !(m.deletedFor || []).includes(currentUserId))
-.map((m, idx) => ({ role: m.role === "assistant" ? "assistant" : m.role === "admin" ? "admin" : "user", content: String(m.content || ""), timestamp: m.timestamp || ticket.created_at, _source: "messages", _index: idx }));
+.map((m, idx) => ({ role: m.role === "assistant" ? "assistant" : m.role === "admin" ? "admin" : "user", content: String(m.content || ""), timestamp: m.timestamp || ticket.created_at, edited: m.edited || false, _source: "messages", _index: idx }));
 const conv = safeArr(ticket.conversation)
 .filter(c => !(c.deletedFor || []).includes(currentUserId))
 .map((c, idx) => ({ role: "admin", content: (c.sender || "Admin") + " replied: " + c.content, timestamp: c.timestamp || ticket.updated_at, _source: "conversation", _index: idx }));
@@ -259,6 +262,13 @@ const iv = setInterval(load, 10000);
 return () => clearInterval(iv);
 }, [activeTicketId]);
 
+useEffect(() => {
+if (editingMsg && editInputRef.current) {
+editInputRef.current.focus();
+editInputRef.current.setSelectionRange(editContent.length, editContent.length);
+}
+}, [editingMsg]);
+
 const addMessage = useCallback((role, content) => {
 setMessages(prev => sortByTime([...prev, { role, content, timestamp: new Date().toISOString() }]));
 if (role !== "user" && !isOpen) setUnreadCount(p => p + 1);
@@ -271,7 +281,7 @@ const ticket = (res.data.data || []).find(t => t.ticket_id === ticketId);
 if (!ticket) return;
 const init = safeArr(ticket.messages)
 .filter(m => !(m.deletedFor || []).includes(currentUserId))
-.map((m, idx) => ({ role: m.role === "assistant" ? "assistant" : m.role === "admin" ? "admin" : "user", content: String(m.content || ""), timestamp: m.timestamp || ticket.created_at, _source: "messages", _index: idx }));
+.map((m, idx) => ({ role: m.role === "assistant" ? "assistant" : m.role === "admin" ? "admin" : "user", content: String(m.content || ""), timestamp: m.timestamp || ticket.created_at, edited: m.edited || false, _source: "messages", _index: idx }));
 const conv = safeArr(ticket.conversation)
 .filter(c => !(c.deletedFor || []).includes(currentUserId))
 .map((c, idx) => ({ role: "admin", content: (c.sender || "Admin") + " replied: " + c.content, timestamp: c.timestamp || ticket.updated_at, _source: "conversation", _index: idx }));
@@ -299,6 +309,7 @@ setAttachments([]);
 setReactions({});
 setEmojiPicker(null);
 setContextMenu(null);
+setEditingMsg(null);
 setInput("");
 setShowHistory(false);
 };
@@ -306,7 +317,7 @@ setShowHistory(false);
 const loadTicket = (ticket) => {
 const init = safeArr(ticket.messages)
 .filter(m => !(m.deletedFor || []).includes(currentUserId))
-.map((m, idx) => ({ role: m.role === "assistant" ? "assistant" : m.role === "admin" ? "admin" : "user", content: String(m.content || ""), timestamp: m.timestamp || ticket.created_at, _source: "messages", _index: idx }));
+.map((m, idx) => ({ role: m.role === "assistant" ? "assistant" : m.role === "admin" ? "admin" : "user", content: String(m.content || ""), timestamp: m.timestamp || ticket.created_at, edited: m.edited || false, _source: "messages", _index: idx }));
 const conv = safeArr(ticket.conversation)
 .filter(c => !(c.deletedFor || []).includes(currentUserId))
 .map((c, idx) => ({ role: "admin", content: (c.sender || "Admin") + " replied: " + c.content, timestamp: c.timestamp || ticket.updated_at, _source: "conversation", _index: idx }));
@@ -320,6 +331,7 @@ setShowQuick(false);
 setContactState("created");
 setEmojiPicker(null);
 setContextMenu(null);
+setEditingMsg(null);
 setInput("");
 setShowHistory(false);
 };
@@ -377,6 +389,37 @@ await reloadTicketMessages(activeTicketId);
 } catch (err) {
 console.error("Delete failed:", err);
 }
+};
+
+const openEditMsg = (msgIndex) => {
+setContextMenu(null);
+setEmojiPicker(null);
+const msg = messages[msgIndex];
+setEditingMsg({ msgIndex, _source: msg._source, _index: msg._index });
+setEditContent(msg.content || "");
+};
+
+const handleEditSave = async () => {
+if (!editContent.trim() || !editingMsg || !activeTicketId) return;
+setEditSaving(true);
+try {
+await axios.put(`${API}/api/support/${activeTicketId}/edit-message`, {
+messageIndex: editingMsg._index,
+messageSource: editingMsg._source,
+newContent: editContent.trim(),
+}, { headers: getHeaders() });
+setEditingMsg(null);
+await reloadTicketMessages(activeTicketId);
+} catch (err) {
+console.error("Edit failed:", err);
+} finally {
+setEditSaving(false);
+}
+};
+
+const handleEditKeyDown = (e) => {
+if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleEditSave(); }
+if (e.key === "Escape") { setEditingMsg(null); }
 };
 
 const handleSend = async (text) => {
@@ -543,19 +586,40 @@ const hasMeta = msg._source && msg._index !== undefined;
 const msgKey = hasMeta ? msg._source + "-" + msg._index : null;
 const mr = msgKey && reactions[msgKey] ? reactions[msgKey] : {};
 const canAct = hasMeta && activeTicketId;
+const isEditingThis = editingMsg?.msgIndex === idx;
 
 return (
 <div key={idx} style={{ display: "flex", flexDirection: "column", alignItems: isUser ? "flex-end" : "flex-start" }}>
 <div
 style={{ display: "flex", alignItems: "flex-end", gap: 4, flexDirection: isUser ? "row-reverse" : "row", position: "relative" }}
 onMouseEnter={e => { const b = e.currentTarget.querySelector("[data-actbar]"); if (b) b.style.opacity = "1"; }}
-onMouseLeave={e => { const b = e.currentTarget.querySelector("[data-actbar]"); if (b && emojiPicker !== idx) b.style.opacity = "0"; }}>
+onMouseLeave={e => { const b = e.currentTarget.querySelector("[data-actbar]"); if (b && emojiPicker !== idx && contextMenu !== idx) b.style.opacity = "0"; }}>
+
+{isEditingThis ? (
+<div style={{ maxWidth: "82%", background: "#f0f4ff", border: "1.5px solid #a5b4fc", borderRadius: "12px", padding: "8px 10px", display: "flex", flexDirection: "column", gap: 6 }}>
+<textarea
+ref={editInputRef}
+value={editContent}
+onChange={e => setEditContent(e.target.value)}
+onKeyDown={handleEditKeyDown}
+rows={2}
+style={{ border: "none", background: "transparent", outline: "none", resize: "none", fontSize: 13, color: "#1e293b", lineHeight: 1.5, width: "100%", minWidth: 180 }}
+/>
+<div style={{ display: "flex", gap: 5, justifyContent: "flex-end" }}>
+<button onClick={() => setEditingMsg(null)} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: "1px solid #cbd5e1", background: "#fff", color: "#64748b", cursor: "pointer", fontWeight: 500 }}>Cancel</button>
+<button onClick={handleEditSave} disabled={editSaving || !editContent.trim()} style={{ fontSize: 11, padding: "3px 10px", borderRadius: 6, border: "none", background: editSaving ? "#a5b4fc" : "#4f46e5", color: "#fff", cursor: editSaving ? "not-allowed" : "pointer", fontWeight: 600 }}>
+{editSaving ? "Saving..." : "Save"}
+</button>
+</div>
+</div>
+) : (
 <div
 style={{ maxWidth: "82%", padding: "9px 13px", borderRadius: style.radius, background: style.bg, color: style.color, fontSize: 13.5, lineHeight: 1.6, border: style.border || "none" }}
 dangerouslySetInnerHTML={{ __html: renderMd(msg.content) }}
 />
+)}
 
-{canAct && (
+{canAct && !isEditingThis && (
 <div data-actbar style={{ display: "flex", gap: 3, opacity: 0, transition: "opacity 0.15s", flexShrink: 0, position: "relative" }}>
 <button
 onClick={e => { e.stopPropagation(); setContextMenu(null); setEmojiPicker(emojiPicker === idx ? null : idx); }}
@@ -565,7 +629,7 @@ react
 <button
 onClick={e => { e.stopPropagation(); setEmojiPicker(null); setContextMenu(contextMenu === idx ? null : idx); }}
 style={{ background: "#fff", border: "1px solid #e2e8f0", borderRadius: 8, padding: "3px 5px", cursor: "pointer", display: "flex", alignItems: "center", boxShadow: "0 1px 4px rgba(0,0,0,0.1)" }}>
-<Trash2 size={11} color="#94a3b8" />
+<Pencil size={11} color="#94a3b8" />
 </button>
 
 {emojiPicker === idx && (
@@ -587,6 +651,13 @@ onMouseLeave={ev => ev.currentTarget.style.background = "transparent"}>
 <div
 style={{ position: "absolute", [isUser ? "right" : "left"]: 0, bottom: "calc(100% + 4px)", background: "#fff", border: "1px solid #e2e8f0", borderRadius: 10, boxShadow: "0 4px 20px rgba(0,0,0,0.15)", zIndex: 9999, minWidth: 180, overflow: "hidden" }}
 onClick={e => e.stopPropagation()}>
+<button onClick={() => openEditMsg(idx)}
+style={{ width: "100%", padding: "10px 14px", border: "none", background: "#fff", textAlign: "left", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#4f46e5", fontWeight: 500 }}
+onMouseEnter={e => e.currentTarget.style.background = "#f0f4ff"}
+onMouseLeave={e => e.currentTarget.style.background = "#fff"}>
+<Pencil size={12} /> Edit Message
+</button>
+<div style={{ height: 1, background: "#f1f5f9" }} />
 <button onClick={() => handleDeleteMessage(idx, "self")}
 style={{ width: "100%", padding: "10px 14px", border: "none", background: "#fff", textAlign: "left", fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, color: "#374151" }}
 onMouseEnter={e => e.currentTarget.style.background = "#f8fafc"}
@@ -626,8 +697,9 @@ style={{ background: mine ? "#e0e7ff" : "#f1f5f9", border: mine ? "1px solid #a5
 </div>
 )}
 
-<div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2 }}>
+<div style={{ fontSize: 10, color: "#94a3b8", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}>
 {msg.role === "admin" ? "Admin - " : ""}{fmt(msg.timestamp)}
+{msg.edited && <span style={{ color: "#c4b5fd", fontStyle: "italic" }}>· edited</span>}
 </div>
 </div>
 );

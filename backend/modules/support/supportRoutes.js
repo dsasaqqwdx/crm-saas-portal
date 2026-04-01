@@ -317,5 +317,21 @@ console.error("Delete ticket error:", err);
 return res.status(500).json({ success: false, message: "Server error" });
 }
 });
+router.put('/:id/edit-message', auth, async (req, res) => {
+  try {
+    const { messageIndex, messageSource, newContent } = req.body;
+    const ticketRow = await pool.query('SELECT * FROM support_tickets WHERE ticket_id=$1', [req.params.id]);
+    if(!ticketRow.rows.length) return res.status(404).json({ success:false });
+    const ticket = ticketRow.rows[0];
+    const arr = toArray(messageSource==='conversation' ? ticket.conversation : ticket.messages);
+    if(!arr[messageIndex]) return res.status(400).json({ success:false, message:'Invalid index' });
+    arr[messageIndex] = { ...arr[messageIndex], content: newContent.trim(), edited:true };
+    const col = messageSource==='conversation' ? 'conversation' : 'messages';
+    await pool.query(`UPDATE support_tickets SET ${col}=$1, updated_at=NOW() WHERE ticket_id=$2`, [JSON.stringify(arr), req.params.id]);
+    res.json({ success:true });
+  } catch(err) {
+    res.status(500).json({ success:false, error:err.message });
+  }
+});
 
 module.exports = router;

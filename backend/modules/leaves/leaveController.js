@@ -58,7 +58,6 @@ exports.approveLeave = async (req, res) => {
     }
 
     try {
-        // 1. Fetch leave data and calculate actual days
         const leaveData = await pool.query(`
             SELECT l.employee_id, l.leave_type, (l.end_date - l.start_date + 1) as days_requested 
             FROM leave_applications l

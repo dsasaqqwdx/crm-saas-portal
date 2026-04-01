@@ -1,5 +1,3 @@
-
-
 const express = require("express");
 const router = express.Router();
 const pool = require("../config/db");
@@ -8,8 +6,6 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const bcrypt = require("bcryptjs");
-
-// ── avatar upload setup ───────────────────────────────────────────────────────
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const dir = path.join(__dirname, "../uploads/avatars");
@@ -32,8 +28,6 @@ const upload = multer({
     cb(null, true);
   },
 });
-
-// ── GET /api/admin/profile ────────────────────────────────────────────────────
 router.get("/profile", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -59,8 +53,6 @@ router.get("/profile", auth, async (req, res) => {
         },
       });
     }
-
-    // fallback: pull from users table
     const userResult = await pool.query(
       "SELECT user_id, name, email, created_at FROM users WHERE user_id = $1",
       [userId]
@@ -87,8 +79,6 @@ router.get("/profile", auth, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-// ── PUT /api/admin/profile ────────────────────────────────────────────────────
 router.put("/profile", auth, upload.single("avatar"), async (req, res) => {
   try {
     const userId = req.user.id;
@@ -109,7 +99,6 @@ router.put("/profile", auth, upload.single("avatar"), async (req, res) => {
     );
 
     if (existing.rows.length > 0) {
-      // Delete old avatar file from disk if a new one is being uploaded
       if (avatarUrl && existing.rows[0].avatar_url) {
         const oldPath = path.join(__dirname, "..", existing.rows[0].avatar_url);
         if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
@@ -137,8 +126,6 @@ router.put("/profile", auth, upload.single("avatar"), async (req, res) => {
         [userId, name, email, phone || null, department || "Administration", avatarUrl]
       );
     }
-
-    // Keep users table in sync
     await pool.query(
       "UPDATE users SET name = $1, email = $2 WHERE user_id = $3",
       [name, email, userId]
@@ -150,8 +137,6 @@ router.put("/profile", auth, upload.single("avatar"), async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-// ── DELETE /api/admin/avatar ──────────────────────────────────────────────────
 router.delete("/avatar", auth, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -164,12 +149,8 @@ router.delete("/avatar", auth, async (req, res) => {
     if (result.rows.length === 0 || !result.rows[0].avatar_url) {
       return res.status(404).json({ message: "No avatar to delete" });
     }
-
-    // Remove file from disk
     const filePath = path.join(__dirname, "..", result.rows[0].avatar_url);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-
-    // Clear avatar_url in DB
     await pool.query(
       "UPDATE admin_profiles SET avatar_url = NULL WHERE admin_id = $1",
       [userId]

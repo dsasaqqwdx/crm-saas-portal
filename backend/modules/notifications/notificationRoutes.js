@@ -1,9 +1,7 @@
-
 const express = require("express");
 const router = express.Router();
 const pool = require("../../config/db");
 const auth = require("../../middleware/authMiddleware");
-
 router.get("/", auth, async (req, res) => {
 try {
 const { id: user_id } = req.user;
