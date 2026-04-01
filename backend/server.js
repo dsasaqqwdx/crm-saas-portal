@@ -29,6 +29,8 @@ const planRoutes         = require("./modules/saas/planRoutes");
 const attachmentRoutes   = require("./modules/support/attachmentRoutes");
 const adminProfileRoutes = require("./routes/AdminProfile");
 const appreciationsRouter = require("./routes/appreciations");
+const EmployeeRoutes     = require("./routes/EmployeeProfile");
+app.use("/api/employees", EmployeeRoutes);
 app.use("/api/appreciations", appreciationsRouter);
 const path = require("path");
 const superAdminProfileRoutes = require("./routes/superAdminProfileRoutes");
