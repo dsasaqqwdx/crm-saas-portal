@@ -56,14 +56,14 @@ const EmployeeAppreciation = () => {
         <div className="container-fluid px-3 px-md-4 py-4">
           <div style={{ background: "#fff", borderRadius: "24px", border: "1px solid #e2e8f0", boxShadow: "0 20px 50px rgba(0,0,0,0.02)", overflow: "hidden", minHeight: "calc(100vh - 100px)" }}>
 
-            {/* Header */}
+            
             <header style={{ padding: "32px 32px 20px", borderBottom: "1px solid #f1f5f9" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px" }}>
                 <div>
                   <h1 style={{ fontFamily: "Roboto,sans-serif", fontSize: "26px", fontWeight: "800", color: "#0f172a", margin: 0, letterSpacing: "-0.8px" }}>My Appreciations</h1>
                   <p style={{ color: "#64748b", fontSize: "14px", marginTop: "6px", marginBottom: 0 }}>Recognition letters received from your organisation</p>
                 </div>
-                {/* Stats pills */}
+                
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   {[
                     { label: "Total Received", value: appreciations.length,                              color: "#f59e0b", bg: "#fffbeb" },
@@ -80,7 +80,7 @@ const EmployeeAppreciation = () => {
 
             <div style={{ padding: "24px 32px" }}>
 
-              {/* Filter chips */}
+             
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "24px" }}>
                 {["all", ...Object.keys(appreciationTypeConfig)].map(key => {
                   const c       = key === "all" ? { label: "All", color: "#334155", bg: "#f1f5f9" } : appreciationTypeConfig[key];
@@ -94,7 +94,7 @@ const EmployeeAppreciation = () => {
                 })}
               </div>
 
-              {/* Empty state */}
+              
               {!loading && filtered.length === 0 && (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "80px 20px", color: "#94a3b8", gap: "16px" }}>
                   <Heart size={48} strokeWidth={1} />
@@ -103,7 +103,7 @@ const EmployeeAppreciation = () => {
                 </div>
               )}
 
-              {/* Table */}
+              
               {(loading || filtered.length > 0) && (
                 <div style={{ borderRadius: "16px", border: "1px solid #f1f5f9", overflow: "hidden" }}>
                   <div style={{ overflowX: "auto" }}>
@@ -152,7 +152,7 @@ const EmployeeAppreciation = () => {
           </div>
         </div>
 
-        {/* View Modal */}
+        
         {viewItem && (
           <div onMouseDown={e => e.target === e.currentTarget && setViewItem(null)}
             style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "center", backdropFilter: "blur(4px)", padding: "16px" }}>
@@ -170,14 +170,14 @@ const EmployeeAppreciation = () => {
                 <button type="button" onClick={() => setViewItem(null)} style={{ background: "#f1f5f9", border: "none", borderRadius: "8px", padding: "6px 10px", cursor: "pointer", color: "#64748b" }}><X size={18} /></button>
               </div>
 
-              {/* Modal body */}
+            
               <div style={{ flex: 1, overflowY: "auto", padding: "28px" }}>
                 <div style={{ background: "#fff", borderRadius: "14px", border: "1px solid #e2e8f0", padding: "28px", boxShadow: "0 2px 12px rgba(0,0,0,0.04)" }}>
                   <div dangerouslySetInnerHTML={{ __html: viewItem.html_content }} />
                 </div>
               </div>
 
-              {/* Modal footer */}
+             
               <div style={{ padding: "14px 28px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end", flexShrink: 0, background: "#fff" }}>
                 <button type="button" onClick={() => setViewItem(null)} style={{ background: "#f1f5f9", color: "#334155", border: "none", borderRadius: "10px", padding: "10px 24px", fontSize: "14px", fontWeight: "600", cursor: "pointer" }}>Close</button>
               </div>

@@ -15,7 +15,7 @@ const letterTypeConfig = {
   relieving: { label: "Relieving Letter", color: "#3b82f6", bg: "#eff6ff" },
 };
 
-// --- LETTER MODAL ---
+
 const LetterModal = ({ letter, onClose }) => {
   if (!letter) return null;
   const lc = letterTypeConfig[letter.letter_type] || letterTypeConfig.offer;
@@ -73,14 +73,12 @@ const LetterModal = ({ letter, onClose }) => {
   );
 };
 
-// --- MAIN COMPONENT ---
 const EmployeeLetters = () => {
   const [letters, setLetters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewLetter, setViewLetter] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // FIXED: Changed markLetterRead to markAsRead and markAllLettersRead to markAllRead
   const { markAsRead, markAllRead } = useNotifications();
 
   useEffect(() => {
@@ -94,7 +92,6 @@ const EmployeeLetters = () => {
         const list = res.data?.data ?? [];
         setLetters(Array.isArray(list) ? list : []);
         
-        // FIXED: Call markAllRead (if it exists)
         if (typeof markAllRead === "function") {
             markAllRead();
         }
@@ -107,12 +104,11 @@ const EmployeeLetters = () => {
     
     load();
     return () => window.removeEventListener("resize", handleResize);
-  }, [markAllRead]); // Added dependency for safety
+  }, [markAllRead]); 
 
   const handleView = (letter) => {
     setViewLetter(letter);
-    
-    // FIXED: Call markAsRead (if it exists)
+
     if (typeof markAsRead === "function") {
         markAsRead(letter._id || letter.id);
     }

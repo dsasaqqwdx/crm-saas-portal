@@ -75,7 +75,7 @@ function AddEmployee() {
       <PageContent>
         <div className="container-fluid px-3 px-md-4 py-4">
           
-          {/* Header Section */}
+          
           <div className="mb-4">
             <h2 className="fw-bold fs-3 mb-1" style={{ color: "#0f172a", letterSpacing: "-0.5px" }}>
               Add Employee
@@ -83,13 +83,13 @@ function AddEmployee() {
             <p className="text-muted small">Register new talent into the ecosystem.</p>
           </div>
 
-          {/* Form Card */}
+          
           <div className="bg-white rounded-4 border shadow-sm overflow-hidden">
             <form onSubmit={handleSubmit}>
               <div className="p-3 p-md-4">
                 <div className="row g-4">
                   
-                  {/* Full Name */}
+                  
                   <div className="col-12 col-md-6 col-lg-4">
                     <label style={labelStyle}>Full Name <span className="text-danger">*</span></label>
                     <div className="position-relative">
@@ -107,7 +107,7 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Work Email */}
+                  
                   <div className="col-12 col-md-6 col-lg-4">
                     <label style={labelStyle}>Work Email <span className="text-danger">*</span></label>
                     <div className="position-relative">
@@ -125,7 +125,7 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Password */}
+                  
                   <div className="col-12 col-md-6 col-lg-4">
                     <label style={labelStyle}>Access Password <span className="text-danger">*</span></label>
                     <div className="position-relative">
@@ -144,7 +144,7 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Contact Number */}
+                 
                   <div className="col-12 col-md-6 col-lg-4">
                     <label style={labelStyle}>Contact Number <span className="text-danger">*</span></label>
                     <div className="position-relative">
@@ -162,7 +162,7 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Joining Date */}
+                  
                   <div className="col-12 col-md-6 col-lg-4">
                     <label style={labelStyle}>Joining Date <span className="text-danger">*</span></label>
                     <div className="position-relative">
@@ -179,7 +179,7 @@ function AddEmployee() {
                     </div>
                   </div>
 
-                  {/* Department */}
+                 
                   <div className="col-12 col-md-6 col-lg-4">
                     <label style={labelStyle}>Department <span className="text-danger">*</span></label>
                     <div className="position-relative">
@@ -204,7 +204,7 @@ function AddEmployee() {
                 </div>
               </div>
 
-              {/* Footer Section */}
+              
               <div className="p-3 p-md-4 bg-light border-top d-flex justify-content-end">
                 <button
                   type="submit"

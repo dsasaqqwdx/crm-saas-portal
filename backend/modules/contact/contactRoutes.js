@@ -2,7 +2,6 @@ const express = require("express");
 const router  = express.Router();
 const pool    = require("../../config/db");
 
-// POST /api/contact — save a new contact message
 router.post("/", async (req, res) => {
   try {
     const { name, email, message } = req.body;
@@ -26,7 +25,6 @@ router.post("/", async (req, res) => {
   }
 });
 
-// GET /api/contact — fetch all messages (superadmin use)
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query(
@@ -39,7 +37,6 @@ router.get("/", async (req, res) => {
   }
 });
 
-// DELETE /api/contact/:id — delete a message (superadmin use)
 router.delete("/:id", async (req, res) => {
   try {
     const result = await pool.query(

@@ -61,7 +61,6 @@ function Holidays({ selfView }) {
       <PageContent>
         <div className="container-fluid px-3 px-md-4 py-4">
           
-          {/* Header Section */}
           <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center mb-4 gap-3">
             <div>
               <h2 className="fw-bold fs-3 mb-1" style={{ color: "#0f172a", letterSpacing: "-0.5px" }}>
@@ -80,7 +79,6 @@ function Holidays({ selfView }) {
             )}
           </div>
 
-          {/* Featured Upcoming Holiday Card */}
           {nextHoliday && (
             <div className="position-relative overflow-hidden mb-4 p-4 p-md-5 rounded-4 shadow-sm text-white" 
                  style={{ background: "linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)" }}>
@@ -105,7 +103,7 @@ function Holidays({ selfView }) {
             </div>
           )}
 
-          {/* Holiday Grid */}
+         
           <div className="row g-3 g-md-4">
             {loading ? (
               <div className="col-12 text-center py-5">
@@ -133,7 +131,7 @@ function Holidays({ selfView }) {
             )}
           </div>
 
-          {/* Footer Info */}
+          
           <div className="mt-5 p-3 p-md-4 bg-white rounded-4 border d-flex align-items-center gap-3 shadow-sm">
             <div className="p-2 bg-light rounded-circle"><MapPin size={20} color="#6366f1" /></div>
             <p className="mb-0 small text-muted">
@@ -142,7 +140,7 @@ function Holidays({ selfView }) {
           </div>
         </div>
 
-        {/* Modal */}
+        
         {showModal && (
           <div className="modal d-block show" tabIndex="-1" style={{ background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)" }}>
             <div className="modal-dialog modal-dialog-centered px-3">

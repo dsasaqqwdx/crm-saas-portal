@@ -15,12 +15,11 @@ const result = await db.query(
 
 const company_id = req.user.company_id;
 
-//adm notifi
 const adminIds = await getCompanyAdmins(company_id);
 for (let id of adminIds) {
 await createNotification(id, "policy", `📎 New policy attached: ${title}`);
 }
-//emp notifi
+
 const employees = await db.query(
 "SELECT user_id FROM users WHERE company_id = $1 AND role = 'employee'",
 [company_id]
