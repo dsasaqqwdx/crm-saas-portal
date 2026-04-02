@@ -35,7 +35,9 @@ app.use("/api/appreciations", appreciationsRouter);
 const path = require("path");
 const superAdminProfileRoutes = require("./routes/superAdminProfileRoutes");
 const letterRoutes = require("./routes/letterRoutes");
-const TrailRoutes = require("./routes/trialRoutes");
+
+const trialRoutes = require("./modules/saas/TrialRoutes");
+app.use("/api/saas", trialRoutes);
 app.use("/api/letters", letterRoutes);
 const appreciationRoutes = require('./routes/appreciations');
 app.use('/api/appreciations', appreciationRoutes);

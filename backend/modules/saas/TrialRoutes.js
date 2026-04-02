@@ -6,7 +6,6 @@ const roleCheck = require("../../middleware/roleCheck");
 
 const isSuperAdmin  = roleCheck(["super_admin", "software_owner"]);
 const isCompanyUser = roleCheck(["company_admin", "employee", "super_admin", "software_owner"]);
-
 router.get("/users", auth, isSuperAdmin, async (req, res) => {
   try {
     const result = await pool.query(

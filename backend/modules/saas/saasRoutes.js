@@ -17,7 +17,7 @@ router.post('/create', auth, adminRoles, createCompany);
 
 router.get('/companies', auth, adminRoles, getCompanies);
 router.get('/global-summary', auth, adminRoles, getGlobalSummary);
-router.get('/users', auth, adminRoles, getAllUsers);
+// router.get('/users', auth, adminRoles, getAllUsers);
 
 router.delete('/company/:id', auth, adminRoles, deleteCompany);
 
