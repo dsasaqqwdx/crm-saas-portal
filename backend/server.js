@@ -40,7 +40,6 @@ app.use("/api/letters", letterRoutes);
 const appreciationRoutes = require('./routes/appreciations');
 app.use('/api/appreciations', appreciationRoutes);
 app.use('/api/employees', employeeRoutes);
-
 app.use("/api/super-admin", superAdminProfileRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/attachments",     attachmentRoutes);
