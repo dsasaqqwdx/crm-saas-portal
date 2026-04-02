@@ -36,6 +36,9 @@ const path = require("path");
 const superAdminProfileRoutes = require("./routes/superAdminProfileRoutes");
 const letterRoutes = require("./routes/letterRoutes");
 
+const contactRoutes = require("./modules/contact/contactRoutes");
+app.use("/api/contact", contactRoutes);
+
 const trialRoutes = require("./modules/saas/TrialRoutes");
 app.use("/api/saas", trialRoutes);
 app.use("/api/letters", letterRoutes);
