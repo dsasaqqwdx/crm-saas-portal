@@ -35,12 +35,12 @@ app.use("/api/appreciations", appreciationsRouter);
 const path = require("path");
 const superAdminProfileRoutes = require("./routes/superAdminProfileRoutes");
 const letterRoutes = require("./routes/letterRoutes");
-const TrailRoutes = require("./routes/trialRoutes");
+// const TrailRoutes = require("./routes/trialRoutes");
 app.use("/api/letters", letterRoutes);
 const appreciationRoutes = require('./routes/appreciations');
 app.use('/api/appreciations', appreciationRoutes);
 app.use('/api/employees', employeeRoutes);
-
+app.use("/api/saas", require("./modules/saas/trialRoutes"));
 app.use("/api/super-admin", superAdminProfileRoutes);
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.use("/api/attachments",     attachmentRoutes);
