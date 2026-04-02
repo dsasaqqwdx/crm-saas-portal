@@ -539,6 +539,7 @@ const Sidebar = () => {
     { name: "Website Settings",    path: "/superadmin/website-settings", icon: <Globe size={18} /> },
     { name: "Support",             path: "/support",                     icon: <HeadphonesIcon size={18} /> },
     { name: "Profile",             path: "/super-admin",                 icon: <UserCog size={18} /> },
+    { name: "Trial Management", path: "/superadmin/trials", icon: <Clock size={18} />, roles: ["super_admin", "software_owner"] },
   ];
 
   const getMenuItems = () => {

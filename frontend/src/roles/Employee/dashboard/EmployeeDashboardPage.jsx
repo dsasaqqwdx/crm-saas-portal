@@ -3217,7 +3217,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ChatbotWidget from "../../../components/ChatbotWidget";
 import "../../../App.css";
-
+import TrialBanner from "../../../components/TrialBanner";
+import TrialWidget from "../../../components/TrialWidget";
 const API = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
 const isAdminSelfView = () => {
@@ -3414,8 +3415,8 @@ const EmployeeDashboard = ({ selfView }) => {
               <span>Viewing your <strong>personal employee profile</strong>. Switch to <strong>Manager</strong> tab to return to admin view.</span>
             </div>
           )}
-
-          {/* Hero card */}
+<TrialBanner />
+<TrialWidget />
           <div className="row mb-4">
             <div className="col-12">
               <div className="p-3 p-md-4 p-lg-5 rounded-4 shadow-sm" style={{ background: "#eef2ff" }}>

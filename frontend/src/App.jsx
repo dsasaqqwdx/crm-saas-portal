@@ -468,6 +468,8 @@ import AdminPoliciesPage from "./roles/Admin/policies/PoliciesPage";
 import EmployeePoliciesPage from "./roles/Employee/policies/PoliciesPage";
 import ProfilePage from './modules/shared/profile/ProfilePage.jsx';
 import EmployeePayrollPage from "./roles/Employee/payroll/EmployeePayrollPage";
+import TrialManagementPage from "./roles/Superadmin/TrialManagementPage";
+  import SuspendedScreen from './pages/Auth/SuspendedScreen.jsx';
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const token = localStorage.getItem("token");
   const role  = localStorage.getItem("role");
@@ -601,15 +603,11 @@ function App() {
             <Leaves />
           </ProtectedRoute>
         } />
-
-        {/* ── Employee dashboard (used by both real employee & admin Self tab) ── */}
         <Route path="/employee-dashboard" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <EmployeeDashboard selfView={true} />
           </ProtectedRoute>
         } />
-
-        {/* ── Self tab (admin acting as employee) ── */}
         <Route path="/employee/holidays" element={
           <ProtectedRoute allowedRoles={['company_admin', 'employee']}>
             <Holidays selfView={true} />
@@ -620,20 +618,11 @@ function App() {
             <Leaves selfView={true} />
           </ProtectedRoute>
         } />
-
-        {/*
-          ── /profile — Employee profile page ──
-          FIX: was allowedRoles={['employee']} only, which caused company_admin
-          to be redirected to /dashboard instead of seeing ProfilePage.
-          Added 'company_admin' so admin in Self tab can reach their employee profile.
-        */}
         <Route path="/profile" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <ProfilePage />
           </ProtectedRoute>
         } />
-
-        {/* ── Employee-only routes ── */}
         <Route path="/attendance" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <MarkAttendance />
@@ -644,6 +633,7 @@ function App() {
             <EmployeeLetters />
           </ProtectedRoute>
         } />
+        <Route path="/suspended" element={<SuspendedScreen />} />
         <Route path="/employee/appreciation" element={
           <ProtectedRoute allowedRoles={['employee', 'company_admin']}>
             <EmployeeAppreciationPage />
@@ -654,7 +644,7 @@ function App() {
             <EmployeePoliciesPage />
           </ProtectedRoute>
         } />
-
+<Route path="/superadmin/trials" element={<TrialManagementPage />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
